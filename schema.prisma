@@ -1,0 +1,502 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Tenant {
+  id        String   @id @default(cuid())
+  name      String
+  email     String?  @unique
+  status    String   @default("ACTIVE")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users              User[]
+  locations          Location[]
+  products           Product[]
+  suppliers          Supplier[]
+  purchaseOrders     PurchaseOrder[]
+  transferOrders     TransferOrder[]
+  notifications      Notification[]
+  auditLogs          AuditLog[]
+  priceHistories     PriceHistory[]
+  demandHistories    DemandHistory[]
+  deadStockRules     DeadStockRule[]
+  reorderPoints      ReorderPoint[]
+
+  @@index([status])
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String
+  passwordHash String
+  firstName    String?
+  lastName     String?
+  role         String   @default("STORE_ASSOCIATE")
+  status       String   @default("ACTIVE")
+  lastLogin    DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  apiKeys       ApiKey[]
+  notifications Notification[]
+  auditLogs     AuditLog[]
+
+  @@unique([email, tenantId])
+  @@index([tenantId])
+  @@index([role])
+  @@index([status])
+}
+
+model ApiKey {
+  id        String   @id @default(cuid())
+  name      String
+  keyHash   String
+  lastUsed  DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId   String
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenantId String
+
+  @@unique([tenantId, userId, name])
+  @@index([userId])
+  @@index([tenantId])
+}
+
+model Location {
+  id              String   @id @default(cuid())
+  name            String
+  address         String?
+  city            String?
+  state           String?
+  country         String?
+  postalCode      String?
+  phone           String?
+  email           String?
+  manager         String?
+  status          String   @default("ACTIVE")
+  type            String   @default("WAREHOUSE")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  binLocations        BinLocation[]
+  inventories         Inventory[]
+  inventoryMovements  InventoryMovement[]
+  transferOrderItems  TransferItem[]
+  demandHistories     DemandHistory[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+  @@index([type])
+  @@index([status])
+}
+
+model BinLocation {
+  id        String   @id @default(cuid())
+  code      String
+  aisle     String?
+  row       String?
+  column    String?
+  shelf     String?
+  capacity  Int?
+  status    String   @default("ACTIVE")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  locationId String
+  location   Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  inventories Inventory[]
+
+  @@unique([locationId, code])
+  @@index([locationId])
+  @@index([status])
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  sku         String
+  barcode     String?
+  category    String?
+  price       Float?
+  costPrice   Float?
+  unit        String   @default("piece")
+  reorderPoint Int     @default(10)
+  status      String   @default("ACTIVE")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  images             ProductImage[]
+  variants           ProductVariant[]
+  inventories        Inventory[]
+  transferItems      TransferItem[]
+  supplierProducts   SupplierProduct[]
+  purchaseOrderItems PurchaseOrderItem[]
+  priceHistories     PriceHistory[]
+  demandHistories    DemandHistory[]
+  reorderPoints      ReorderPoint[]
+
+  @@unique([tenantId, sku])
+  @@index([tenantId])
+  @@index([category])
+  @@index([status])
+  @@index([barcode])
+}
+
+model ProductImage {
+  id        String   @id @default(cuid())
+  url       String
+  alt       String?
+  isPrimary Boolean  @default(false)
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@index([isPrimary])
+}
+
+model ProductVariant {
+  id          String   @id @default(cuid())
+  name        String
+  sku         String
+  description String?
+  price       Float?
+  costPrice   Float?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, sku])
+  @@index([productId])
+}
+
+model Inventory {
+  id                    String   @id @default(cuid())
+  quantity              Int      @default(0)
+  reservedQuantity      Int      @default(0)
+  availableQuantity     Int      @default(0)
+  daysInInventory       Int?
+  lastMovementDate      DateTime?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  locationId String
+  location   Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  binLocationId String?
+  binLocation   BinLocation? @relation(fields: [binLocationId], references: [id], onDelete: SetNull)
+
+  movements InventoryMovement[]
+
+  @@unique([productId, locationId])
+  @@index([productId])
+  @@index([locationId])
+  @@index([binLocationId])
+  @@index([daysInInventory])
+}
+
+model InventoryMovement {
+  id              String   @id @default(cuid())
+  type            String   // IN, OUT, ADJUSTMENT, RETURN
+  quantity        Int
+  reason          String?
+  referenceId     String?
+  referenceType   String?
+  notes           String?
+  createdAt       DateTime @default(now())
+
+  inventoryId String
+  inventory   Inventory @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
+
+  locationId String
+  location   Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  @@index([inventoryId])
+  @@index([type])
+  @@index([createdAt])
+}
+
+model TransferOrder {
+  id        String   @id @default(cuid())
+  code      String
+  status    String   @default("DRAFT")
+  // DRAFT, CONFIRMED, IN_TRANSIT, DELIVERED, CANCELLED
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  items TransferItem[]
+
+  @@unique([tenantId, code])
+  @@index([tenantId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model TransferItem {
+  id        String   @id @default(cuid())
+  quantity  Int
+  status    String   @default("PENDING")
+  createdAt DateTime @default(now())
+
+  transferOrderId String
+  transferOrder   TransferOrder @relation(fields: [transferOrderId], references: [id], onDelete: Cascade)
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  fromLocationId String
+  fromLocation   Location @relation(fields: [fromLocationId], references: [id], onDelete: Cascade)
+
+  toLocationId String?
+  // Storing location ID for destination
+
+  @@index([transferOrderId])
+  @@index([productId])
+}
+
+model Supplier {
+  id            String   @id @default(cuid())
+  name          String
+  email         String?
+  phone         String?
+  address       String?
+  city          String?
+  state         String?
+  country       String?
+  postalCode    String?
+  contactPerson String?
+  paymentTerms  String?
+  rating        Float?   @default(0)
+  status        String   @default("ACTIVE")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  products       SupplierProduct[]
+  purchaseOrders PurchaseOrder[]
+
+  @@index([tenantId])
+  @@index([status])
+}
+
+model SupplierProduct {
+  id              String   @id @default(cuid())
+  supplierSku     String
+  moq             Int?     // Minimum Order Quantity
+  leadTime        Int?     // in days
+  price           Float?
+  currency        String   @default("USD")
+  lastPriceUpdate DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  supplierId String
+  supplier   Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([supplierId, productId])
+  @@index([supplierId])
+  @@index([productId])
+}
+
+model PurchaseOrder {
+  id            String   @id @default(cuid())
+  code          String
+  status        String   @default("DRAFT")
+  // DRAFT, CONFIRMED, PARTIALLY_RECEIVED, RECEIVED, CANCELLED
+  totalAmount   Float?
+  expectedDate  DateTime?
+  receivedDate  DateTime?
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  supplierId String
+  supplier   Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+
+  items PurchaseOrderItem[]
+
+  @@unique([tenantId, code])
+  @@index([tenantId])
+  @@index([supplierId])
+  @@index([status])
+}
+
+model PurchaseOrderItem {
+  id              String   @id @default(cuid())
+  quantity        Int
+  receivedQuantity Int     @default(0)
+  unitPrice       Float
+  totalPrice      Float?
+  createdAt       DateTime @default(now())
+
+  purchaseOrderId String
+  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([purchaseOrderId])
+  @@index([productId])
+}
+
+model ReorderPoint {
+  id               String   @id @default(cuid())
+  reorderQuantity  Int
+  safetyStock      Int?
+  lastReorderDate  DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, productId])
+  @@index([tenantId])
+  @@index([productId])
+}
+
+model DemandHistory {
+  id            String   @id @default(cuid())
+  quantity      Int
+  date          DateTime @default(now())
+  forecastedDemand Int?
+  createdAt     DateTime @default(now())
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  locationId String
+  location   Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([productId])
+  @@index([locationId])
+  @@index([date])
+}
+
+model DeadStockRule {
+  id              String   @id @default(cuid())
+  name            String
+  daysThreshold   Int      // Days without movement
+  quantityMin     Int?     // Minimum quantity to consider
+  action          String   @default("FLAG")
+  // FLAG, RECOMMEND_DISCOUNT, AUTO_OBSOLETE
+  status          String   @default("ACTIVE")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([status])
+}
+
+model PriceHistory {
+  id    String   @id @default(cuid())
+  price Float
+  date  DateTime @default(now())
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([productId])
+  @@index([date])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  type      String   // LOW_STOCK, DEAD_STOCK, ORDER_RECEIVED, etc.
+  title     String
+  message   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  userId String?
+  user   User?  @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId])
+  @@index([userId])
+  @@index([type])
+  @@index([read])
+}
+
+model AuditLog {
+  id       String   @id @default(cuid())
+  action   String
+  entity   String
+  entityId String
+  changes  String?  // JSON stringified
+  status   String
+  details  String?
+  ip       String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  userId String?
+  user   User?  @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId])
+  @@index([userId])
+  @@index([action])
+  @@index([entity])
+  @@index([createdAt])
+}
