@@ -30,13 +30,13 @@ export function createApp(): Application {
   app.use(compression());
 
   // Request logging
-  app.use((req, res, next) => {
+  app.use((req, _res, next) => {
     logger.info(`${req.method} ${req.path}`);
     next();
   });
 
   // Health check endpoint
-  app.get('/health', (req, res) => {
+  app.get('/health', (_req, res) => {
     res.status(200).json({
       status: 'OK',
       timestamp: new Date().toISOString(),

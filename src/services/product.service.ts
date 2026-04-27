@@ -40,7 +40,8 @@ export class ProductService {
             sku: data.sku,
             name: data.name,
             description: data.description,
-            basePrice: data.basePrice,
+            baseCost: data.baseCost,
+            retailPrice: data.retailPrice,
             weight: data.weight,
             tenantId,
             variants: data.variants
@@ -216,7 +217,8 @@ export class ProductService {
           ...(data.sku && { sku: data.sku }),
           ...(data.name && { name: data.name }),
           ...(data.description !== undefined && { description: data.description }),
-          ...(data.basePrice && { basePrice: data.basePrice }),
+          ...(data.baseCost && { baseCost: data.baseCost }),
+          ...(data.retailPrice && { retailPrice: data.retailPrice }),
           ...(data.weight !== undefined && { weight: data.weight }),
         },
         include: {

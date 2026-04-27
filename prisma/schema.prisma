@@ -29,9 +29,12 @@ enum InventoryMovementType {
 }
 
 enum TransferStatus {
-  PENDING
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
   IN_TRANSIT
-  RECEIVED
+  PARTIALLY_RECEIVED
+  COMPLETED
   CANCELLED
 }
 
@@ -47,6 +50,7 @@ enum PurchaseOrderStatus {
 model Tenant {
   id            String   @id @default(cuid())
   name          String
+  isActive      Boolean  @default(true)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -147,7 +151,8 @@ model Product {
   sku             String
   name            String
   description     String?
-  basePrice       Float
+  baseCost        Float
+  retailPrice     Float
   weight          Float?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
@@ -201,6 +206,7 @@ model Inventory {
   locationId      String
   quantity        Int      @default(0)
   reservedQuantity Int    @default(0)
+  inTransit       Int      @default(0)
   daysInInventory Int?
   lastMovedAt     DateTime?
   createdAt       DateTime @default(now())
@@ -242,7 +248,18 @@ model TransferOrder {
   tenantId        String
   fromLocationId  String
   toLocationId    String
-  status          TransferStatus @default(PENDING)
+  status          TransferStatus @default(DRAFT)
+  totalValue      Float    @default(0)
+  requiresApproval Boolean @default(false)
+  notes           String?
+  createdBy       String?
+  approvedBy      String?
+  approvedAt      DateTime?
+  rejectionReason String?
+  carrier         String?
+  trackingNumber  String?
+  shippedAt       DateTime?
+  receivedAt      DateTime?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
@@ -262,6 +279,7 @@ model TransferItem {
   transferOrderId String
   productId       String
   quantity        Int
+  quantityShipped Int @default(0)
   receivedQuantity Int @default(0)
 
   transferOrder   TransferOrder @relation(fields: [transferOrderId], references: [id], onDelete: Cascade)
@@ -411,6 +429,7 @@ model Notification {
   tenantId        String
   type            String
   message         String
+  metadata        Json?
   isRead          Boolean  @default(false)
   createdAt       DateTime @default(now())
 

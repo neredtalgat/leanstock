@@ -74,22 +74,34 @@ async function checkAllTenants(): Promise<void> {
  */
 async function checkTenant(tenantId: string): Promise<void> {
   try {
-    // Find all inventory items that are below reorder point
-    const lowStockItems = await db.inventory.findMany({
+    // Find all inventory items
+    const inventoryItems = await db.inventory.findMany({
       where: { tenantId },
       include: {
         product: true,
         location: true,
-        reorderPoint: true,
       },
     });
 
-    for (const item of lowStockItems) {
-      if (!item.reorderPoint) continue;
+    // Find all reorder points for tenant
+    const reorderPoints = await db.reorderPoint.findMany({
+      where: { tenantId },
+    });
+
+    // Create map for quick lookup
+    const reorderPointMap = new Map<string, any>(
+      reorderPoints.map((rp: any) => [`${rp.productId}_${rp.locationId}`, rp]),
+    );
+
+    for (const item of inventoryItems) {
+      const key = `${item.productId}_${item.locationId}`;
+      const reorderPoint = reorderPointMap.get(key);
+
+      if (!reorderPoint) continue;
 
       const availableStock = item.quantity - item.reservedQuantity;
 
-      if (availableStock <= item.reorderPoint.minQuantity) {
+      if (availableStock <= reorderPoint.minQuantity) {
         // Check if there's already an open PO for this product
         const existingPO = await db.purchaseOrder.findFirst({
           where: {
@@ -103,13 +115,13 @@ async function checkTenant(tenantId: string): Promise<void> {
 
         if (!existingPO) {
           // Create notification for low stock
-          const recommendedQuantity = item.reorderPoint.maxQuantity - availableStock;
+          const recommendedQuantity = reorderPoint.maxQuantity - availableStock;
 
           await db.notification.create({
             data: {
               tenantId,
               type: 'LOW_STOCK',
-              message: `Low stock alert: ${item.product.name} at ${item.location.name}. Current: ${availableStock}, Min: ${item.reorderPoint.minQuantity}, Recommended order: ${recommendedQuantity}`,
+              message: `Low stock alert: ${item.product.name} at ${item.location.name}. Current: ${availableStock}, Min: ${reorderPoint.minQuantity}, Recommended order: ${recommendedQuantity}`,
             },
           });
 

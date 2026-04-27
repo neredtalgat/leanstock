@@ -10,7 +10,8 @@ export const createProductSchema = z.object({
   sku: z.string().min(1, 'SKU is required').max(50, 'SKU must be less than 50 characters'),
   name: z.string().min(1, 'Product name is required').max(255, 'Product name must be less than 255 characters'),
   description: z.string().max(1000, 'Description must be less than 1000 characters').optional(),
-  basePrice: z.number().positive('Base price must be positive'),
+  baseCost: z.number().positive('Base cost must be positive'),
+  retailPrice: z.number().positive('Retail price must be positive'),
   weight: z.number().positive('Weight must be positive').optional(),
   variants: z.array(productVariantSchema).max(5, 'Maximum 5 variants allowed').optional(),
 });
@@ -19,7 +20,8 @@ export const updateProductSchema = z.object({
   sku: z.string().min(1).max(50).optional(),
   name: z.string().min(1).max(255).optional(),
   description: z.string().max(1000).optional(),
-  basePrice: z.number().positive().optional(),
+  baseCost: z.number().positive().optional(),
+  retailPrice: z.number().positive().optional(),
   weight: z.number().positive().optional(),
 });
 

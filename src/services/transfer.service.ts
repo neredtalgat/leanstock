@@ -13,7 +13,7 @@ export interface TransferOrder {
     productId: string;
     quantity: number;
     quantityShipped: number;
-    quantityReceived: number;
+    receivedQuantity: number;
   }>;
 }
 

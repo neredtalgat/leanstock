@@ -19,13 +19,15 @@ export function getPrisma(): PrismaClient {
 
     // Log queries in development
     if (process.env.NODE_ENV === 'development') {
-      prismaInstance.$on('query', (e) => {
+      // @ts-ignore - Prisma event types
+      prismaInstance.$on('query', (e: any) => {
         logger.debug(`Query: ${e.query}`);
         logger.debug(`Duration: ${e.duration}ms`);
       });
     }
 
-    prismaInstance.$on('error', (e) => {
+    // @ts-ignore - Prisma event types
+    prismaInstance.$on('error', (e: any) => {
       logger.error(`Database error: ${e.message}`);
     });
 
