@@ -149,7 +149,7 @@ export class AuthService {
       type: 'access',
     };
 
-    // @ts-ignore - jsonwebtoken type incompatibility
+    // @ts-expect-error - jsonwebtoken type incompatibility
     const accessToken = jwt.sign(payload, env.JWT_SECRET as string, {
       expiresIn: env.JWT_EXPIRES_IN as string,
     });
@@ -159,7 +159,7 @@ export class AuthService {
       type: 'refresh',
     };
 
-    // @ts-ignore - jsonwebtoken type incompatibility
+    // @ts-expect-error - jsonwebtoken type incompatibility
     const refreshToken = jwt.sign(refreshPayload, env.JWT_SECRET as string, {
       expiresIn: env.JWT_REFRESH_EXPIRES_IN as string,
     });

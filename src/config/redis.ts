@@ -8,8 +8,8 @@ export function getRedis(): Redis {
   if (!redisInstance) {
     redisInstance = new Redis(env.REDIS_URL, {
       maxRetriesPerRequest: null,
-      enableReadyCheck: false,
-      enableOfflineQueue: false,
+      enableReadyCheck: true,
+      enableOfflineQueue: true,
       retryStrategy: (times) => {
         const delay = Math.min(times * 50, 2000);
         logger.warn(`Redis reconnecting... attempt ${times}`);

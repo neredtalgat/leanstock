@@ -31,18 +31,7 @@ type Environment = z.infer<typeof envSchema>;
 let config: Environment;
 
 function validateEnv(): Environment {
-  try {
-    return envSchema.parse(process.env);
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      console.error('❌ Environment validation failed:');
-      error.errors.forEach(err => {
-        console.error(`  ${err.path.join('.')}: ${err.message}`);
-      });
-      process.exit(1);
-    }
-    throw error;
-  }
+  return envSchema.parse(process.env);
 }
 
 function getConfig(): Environment {

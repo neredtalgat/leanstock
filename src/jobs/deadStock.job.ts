@@ -1,7 +1,7 @@
 import { Worker, Queue } from 'bullmq';
 import { redis } from '../config/redis';
 import { deadStockService } from '../services/deadStock.service';
-import { tenantDb } from '../config/database';
+import { tenantDb, asyncLocalStorage } from '../config/database';
 import { logger } from '../config/logger';
 
 const deadStockQueue = new Queue('dead-stock-discounts', { connection: redis });
@@ -9,7 +9,7 @@ const deadStockQueue = new Queue('dead-stock-discounts', { connection: redis });
 // Worker to process dead stock discounts
 export const deadStockWorker = new Worker(
   'dead-stock-discounts',
-  async (job) => {
+  async () => {
     logger.info('Starting dead stock discount job');
 
     try {
@@ -70,5 +70,3 @@ deadStockWorker.on('completed', (job) => {
 deadStockWorker.on('failed', (job, err) => {
   logger.error({ err }, `Dead stock job ${job?.id} failed`);
 });
-
-import { asyncLocalStorage } from '../config/database';
