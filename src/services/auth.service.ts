@@ -76,8 +76,12 @@ export class AuthService {
 
       // Generate token pair
       return this.generateTokenPair(user, data.tenantId);
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Login error:', error);
+      // Return INVALID_CREDENTIALS for any error (including DB errors) for security
+      if (error.message !== 'INVALID_CREDENTIALS') {
+        throw new Error('INVALID_CREDENTIALS');
+      }
       throw error;
     }
   }

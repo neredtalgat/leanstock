@@ -276,54 +276,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
-  /inventory:
-    get:
-      summary: List inventory
-      description: Get inventory levels with optional filters
+    put:
+      summary: Update product
+      description: Update product details (requires products:update permission)
       tags:
-        - Inventory
-      security:
-        - BearerAuth: []
-      parameters:
-        - name: locationId
-          in: query
-          schema:
-            type: string
-            format: uuid
-          description: Filter by location
-        - name: productId
-          in: query
-          schema:
-            type: string
-            format: uuid
-          description: Filter by product
-        - name: lowStock
-          in: query
-          schema:
-            type: boolean
-          description: Show only low stock items
-      responses:
-        200:
-          description: List of inventory items
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/InventoryResponse'
-        401:
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
-  /inventory/{id}/adjust:
-    post:
-      summary: Adjust inventory quantity
-      description: Adjust inventory quantity with reason (requires inventory:adjust permission)
-      tags:
-        - Inventory
+        - Products
       security:
         - BearerAuth: []
       parameters:
@@ -338,14 +295,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/AdjustInventoryRequest'
+              $ref: '#/components/schemas/UpdateProductRequest'
       responses:
         200:
-          description: Inventory adjusted
+          description: Product updated
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/InventoryResponse'
+                $ref: '#/components/schemas/ProductResponse'
         400:
           description: Validation error
           content:
@@ -359,7 +316,94 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
         403:
-          description: Forbidden
+          description: Forbidden - requires products:update permission
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        404:
+          description: Product not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      summary: Delete product
+      description: Delete product (requires products:delete permission)
+      tags:
+        - Products
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        204:
+          description: Product deleted successfully
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        403:
+          description: Forbidden - requires products:delete permission
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        404:
+          description: Product not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /products/{id}/images:
+    post:
+      summary: Upload product image
+      description: Upload image URL for a product
+      tags:
+        - Products
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UploadImageRequest'
+      responses:
+        201:
+          description: Image uploaded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Image uploaded successfully
+        400:
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        401:
+          description: Unauthorized
           content:
             application/json:
               schema:
@@ -436,6 +480,1059 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
         409:
           description: Insufficient stock
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /inventory:
+    get:
+      summary: List inventory
+      description: Get inventory levels with filters (product, location, low stock)
+      tags:
+        - Inventory
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: productId
+          in: query
+          schema:
+            type: string
+            format: uuid
+          description: Filter by product
+        - name: locationId
+          in: query
+          schema:
+            type: string
+            format: uuid
+          description: Filter by location
+        - name: lowStock
+          in: query
+          schema:
+            type: boolean
+          description: Show only low stock items
+      responses:
+        200:
+          description: List of inventory items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/InventoryResponse'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /inventory/adjust:
+    post:
+      summary: Adjust inventory
+      description: Adjust inventory quantity with reason (requires inventory:adjust permission)
+      tags:
+        - Inventory
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdjustInventoryRequest'
+      responses:
+        200:
+          description: Inventory adjusted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InventoryAdjustmentResponse'
+        400:
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        403:
+          description: Forbidden - requires inventory:adjust permission
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        404:
+          description: Inventory record not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /locations:
+    get:
+      summary: List locations
+      description: Get all locations for tenant
+      tags:
+        - Locations
+      security:
+        - BearerAuth: []
+      responses:
+        200:
+          description: List of locations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LocationResponse'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    post:
+      summary: Create location
+      description: Create a new warehouse/store (requires locations:create permission)
+      tags:
+        - Locations
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateLocationRequest'
+      responses:
+        201:
+          description: Location created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LocationResponse'
+        400:
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        403:
+          description: Forbidden - requires locations:create permission
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /audit-logs:
+    get:
+      summary: List audit logs
+      description: Get audit trail of all changes (requires audit:read permission)
+      tags:
+        - Audit
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: productId
+          in: query
+          schema:
+            type: string
+            format: uuid
+          description: Filter by product
+        - name: userId
+          in: query
+          schema:
+            type: string
+            format: uuid
+          description: Filter by user
+        - name: action
+          in: query
+          schema:
+            type: string
+          description: Filter by action type
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+          description: Number of records to return
+      responses:
+        200:
+          description: List of audit logs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AuditLogResponse'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        403:
+          description: Forbidden - requires audit:read permission
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /reports/low-stock:
+    get:
+      summary: Low stock report
+      description: Get items below minimum stock level with urgency scoring
+      tags:
+        - Reports
+      security:
+        - BearerAuth: []
+      responses:
+        200:
+          description: Low stock report
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LowStockReportResponse'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /purchase-orders:
+    get:
+      summary: List purchase orders
+      description: Get all purchase orders with optional status filter
+      tags:
+        - Purchase Orders
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [DRAFT, SUBMITTED, CONFIRMED, RECEIVING, COMPLETED, CANCELLED]
+          description: Filter by status
+      responses:
+        200:
+          description: List of purchase orders
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PurchaseOrderResponse'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    post:
+      summary: Create purchase order
+      description: Create a new purchase order to supplier (requires purchase_orders:create permission)
+      tags:
+        - Purchase Orders
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePurchaseOrderRequest'
+      responses:
+        201:
+          description: Purchase order created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PurchaseOrderResponse'
+        400:
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        403:
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        404:
+          description: Supplier or product not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /purchase-orders/{id}:
+    put:
+      summary: Update purchase order
+      description: Update status or delivery date (requires purchase_orders:update permission)
+      tags:
+        - Purchase Orders
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePurchaseOrderRequest'
+      responses:
+        200:
+          description: Purchase order updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PurchaseOrderResponse'
+        400:
+          description: Validation error or invalid status transition
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        403:
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        404:
+          description: Purchase order not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /purchase-orders/{id}/receive:
+    post:
+      summary: Receive purchase order items
+      description: Receive items from supplier and update inventory (requires purchase_orders:receive permission)
+      tags:
+        - Purchase Orders
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReceivePurchaseOrderRequest'
+      responses:
+        200:
+          description: Items received successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PurchaseOrderResponse'
+        400:
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        403:
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        404:
+          description: Purchase order not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /suppliers:
+    get:
+      summary: List suppliers
+      description: Get all suppliers for tenant with optional search
+      tags:
+        - Suppliers
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Search by name or email
+      responses:
+        200:
+          description: List of suppliers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SupplierResponse'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    post:
+      summary: Create supplier
+      description: Create a new supplier (requires suppliers:create permission)
+      tags:
+        - Suppliers
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSupplierRequest'
+      responses:
+        201:
+          description: Supplier created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SupplierResponse'
+        400:
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        403:
+          description: Forbidden - requires suppliers:create permission
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /suppliers/{id}:
+    get:
+      summary: Get supplier by ID
+      description: Get detailed supplier information with products
+      tags:
+        - Suppliers
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        200:
+          description: Supplier details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SupplierDetailResponse'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        404:
+          description: Supplier not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      summary: Update supplier
+      description: Update supplier details (requires suppliers:update permission)
+      tags:
+        - Suppliers
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateSupplierRequest'
+      responses:
+        200:
+          description: Supplier updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SupplierResponse'
+        400:
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        403:
+          description: Forbidden - requires suppliers:update permission
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        404:
+          description: Supplier not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      summary: Delete supplier
+      description: Delete supplier (requires suppliers:delete permission). Cannot delete if has purchase orders.
+      tags:
+        - Suppliers
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        204:
+          description: Supplier deleted successfully
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        403:
+          description: Forbidden - requires suppliers:delete permission
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        404:
+          description: Supplier not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        409:
+          description: Cannot delete supplier with existing purchase orders
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /suppliers/{id}/products:
+    get:
+      summary: Get supplier products
+      description: Get all products linked to supplier
+      tags:
+        - Suppliers
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        200:
+          description: List of supplier products
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SupplierProductResponse'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        404:
+          description: Supplier not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    post:
+      summary: Add product to supplier
+      description: Link a product to supplier with pricing (requires suppliers:update permission)
+      tags:
+        - Suppliers
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddSupplierProductRequest'
+      responses:
+        201:
+          description: Product added to supplier
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SupplierProductResponse'
+        400:
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        403:
+          description: Forbidden - requires suppliers:update permission
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        404:
+          description: Supplier or product not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /suppliers/{id}/products/{productId}:
+    delete:
+      summary: Remove product from supplier
+      description: Unlink a product from supplier (requires suppliers:update permission)
+      tags:
+        - Suppliers
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        204:
+          description: Product removed from supplier
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        403:
+          description: Forbidden - requires suppliers:update permission
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        404:
+          description: Supplier not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /inventory/movements:
+    get:
+      summary: List inventory movements
+      description: Get inventory movement history with filters
+      tags:
+        - Inventory
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: inventoryId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: productId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: locationId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [IN, OUT, ADJUSTMENT, TRANSFER_OUT, TRANSFER_IN, RETURN]
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: to
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+            maximum: 100
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        200:
+          description: Paginated list of inventory movements
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InventoryMovementListResponse'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /inventory/movements/{id}:
+    get:
+      summary: Get inventory movement by ID
+      description: Get detailed movement information
+      tags:
+        - Inventory
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        200:
+          description: Movement details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InventoryMovementResponse'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        404:
+          description: Movement not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /reorder-points:
+    get:
+      summary: List reorder points
+      description: Get all reorder points with optional low stock filter
+      tags:
+        - Reorder Points
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: productId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: locationId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: lowStock
+          in: query
+          schema:
+            type: string
+            enum: ['true', 'false']
+          description: Filter to show only items below minimum quantity
+      responses:
+        200:
+          description: List of reorder points
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ReorderPointResponse'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    post:
+      summary: Create reorder point
+      description: Create min/max stock levels for product at location (requires reorder-points:create permission)
+      tags:
+        - Reorder Points
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateReorderPointRequest'
+      responses:
+        201:
+          description: Reorder point created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReorderPointResponse'
+        400:
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        403:
+          description: Forbidden - requires reorder-points:create permission
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        404:
+          description: Product or location not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        409:
+          description: Reorder point already exists for this product and location
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /reorder-points/{id}:
+    get:
+      summary: Get reorder point by ID
+      description: Get reorder point details
+      tags:
+        - Reorder Points
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        200:
+          description: Reorder point details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReorderPointResponse'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        404:
+          description: Reorder point not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      summary: Update reorder point
+      description: Update min/max quantities (requires reorder-points:update permission)
+      tags:
+        - Reorder Points
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateReorderPointRequest'
+      responses:
+        200:
+          description: Reorder point updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReorderPointResponse'
+        400:
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        403:
+          description: Forbidden - requires reorder-points:update permission
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        404:
+          description: Reorder point not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      summary: Delete reorder point
+      description: Delete reorder point (requires reorder-points:delete permission)
+      tags:
+        - Reorder Points
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        204:
+          description: Reorder point deleted
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        403:
+          description: Forbidden - requires reorder-points:delete permission
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        404:
+          description: Reorder point not found
           content:
             application/json:
               schema:
@@ -585,6 +1682,39 @@ components:
               value:
                 type: string
 
+    UpdateProductRequest:
+      type: object
+      properties:
+        sku:
+          type: string
+          example: SKU-001
+        name:
+          type: string
+          example: Product A
+        description:
+          type: string
+          example: Sample product description
+        basePrice:
+          type: number
+          format: float
+          example: 29.99
+        weight:
+          type: number
+          format: float
+          example: 1.5
+        variants:
+          type: array
+          maxItems: 5
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              sku:
+                type: string
+              value:
+                type: string
+
     ProductResponse:
       type: object
       properties:
@@ -642,52 +1772,19 @@ components:
             limit:
               type: integer
 
-    InventoryResponse:
-      type: object
-      properties:
-        id:
-          type: string
-          format: uuid
-        productId:
-          type: string
-          format: uuid
-        locationId:
-          type: string
-          format: uuid
-        quantity:
-          type: integer
-          minimum: 0
-        reservedQuantity:
-          type: integer
-          minimum: 0
-        daysInInventory:
-          type: integer
-          nullable: true
-        lastMovedAt:
-          type: string
-          format: date-time
-          nullable: true
-        createdAt:
-          type: string
-          format: date-time
-        updatedAt:
-          type: string
-          format: date-time
-
-    AdjustInventoryRequest:
+    UploadImageRequest:
       type: object
       required:
-        - quantity
-        - reason
+        - url
       properties:
-        quantity:
-          type: integer
-          description: New absolute quantity (not delta)
-          example: 100
-        reason:
+        url:
           type: string
-          maxLength: 255
-          example: Stock count adjustment
+          format: uri
+          example: https://cdn.example.com/product-123.jpg
+        isPrimary:
+          type: boolean
+          default: false
+          example: true
 
     ErrorResponse:
       type: object
@@ -783,6 +1880,704 @@ components:
         updatedAt:
           type: string
           format: date-time
+
+    InventoryResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        productId:
+          type: string
+          format: uuid
+        locationId:
+          type: string
+          format: uuid
+        quantity:
+          type: integer
+          minimum: 0
+        reservedQuantity:
+          type: integer
+          minimum: 0
+        availableQuantity:
+          type: integer
+          minimum: 0
+        minStockLevel:
+          type: integer
+          nullable: true
+        maxStockLevel:
+          type: integer
+          nullable: true
+        daysInInventory:
+          type: integer
+          nullable: true
+        lastMovedAt:
+          type: string
+          format: date-time
+          nullable: true
+        isLowStock:
+          type: boolean
+        product:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            sku:
+              type: string
+            name:
+              type: string
+            basePrice:
+              type: number
+        location:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            name:
+              type: string
+            type:
+              type: string
+              enum: [WAREHOUSE, STORE, DISTRIBUTION_CENTER]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    AdjustInventoryRequest:
+      type: object
+      required:
+        - productId
+        - locationId
+        - newQuantity
+        - reason
+      properties:
+        productId:
+          type: string
+          format: uuid
+        locationId:
+          type: string
+          format: uuid
+        newQuantity:
+          type: integer
+          minimum: 0
+          example: 100
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 255
+          example: Stock count adjustment after inventory check
+
+    InventoryAdjustmentResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        quantity:
+          type: integer
+        oldQuantity:
+          type: integer
+        delta:
+          type: integer
+        productId:
+          type: string
+          format: uuid
+        locationId:
+          type: string
+          format: uuid
+
+    CreateLocationRequest:
+      type: object
+      required:
+        - name
+        - type
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+          example: Main Warehouse
+        address:
+          type: string
+          maxLength: 255
+          example: 123 Main St, New York, NY 10001
+        type:
+          type: string
+          enum: [WAREHOUSE, STORE, DISTRIBUTION_CENTER]
+          example: WAREHOUSE
+
+    LocationResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        address:
+          type: string
+          nullable: true
+        type:
+          type: string
+          enum: [WAREHOUSE, STORE, DISTRIBUTION_CENTER]
+        isActive:
+          type: boolean
+        inventoryCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    AuditLogResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        action:
+          type: string
+          example: INVENTORY_ADJUST
+        entityType:
+          type: string
+          example: Inventory
+        entityId:
+          type: string
+          format: uuid
+        oldValues:
+          type: object
+          nullable: true
+        newValues:
+          type: object
+          nullable: true
+        user:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            email:
+              type: string
+            firstName:
+              type: string
+            lastName:
+              type: string
+        ipAddress:
+          type: string
+          nullable: true
+        userAgent:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+
+    LowStockReportResponse:
+      type: object
+      properties:
+        totalItems:
+          type: integer
+        critical:
+          type: integer
+        high:
+          type: integer
+        medium:
+          type: integer
+        low:
+          type: integer
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                format: uuid
+              product:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                  sku:
+                    type: string
+                  name:
+                    type: string
+                  basePrice:
+                    type: number
+              location:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                  name:
+                    type: string
+                  type:
+                    type: string
+              currentStock:
+                type: integer
+              minStockLevel:
+                type: integer
+              maxStockLevel:
+                type: integer
+                nullable: true
+              shortage:
+                type: integer
+              suggestedReorderQty:
+                type: integer
+              urgency:
+                type: string
+                enum: [CRITICAL, HIGH, MEDIUM, LOW]
+              daysInInventory:
+                type: integer
+                nullable: true
+              lastMovedAt:
+                type: string
+                format: date-time
+                nullable: true
+
+    CreatePurchaseOrderRequest:
+      type: object
+      required:
+        - supplierId
+        - items
+      properties:
+        supplierId:
+          type: string
+          format: uuid
+          example: supp-001
+        expectedDeliveryDate:
+          type: string
+          format: date-time
+          example: 2026-05-15T10:00:00Z
+        items:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            required:
+              - productId
+              - quantity
+              - unitPrice
+            properties:
+              productId:
+                type: string
+                format: uuid
+              quantity:
+                type: integer
+                minimum: 1
+                example: 50
+              unitPrice:
+                type: number
+                minimum: 0
+                example: 29.99
+
+    UpdatePurchaseOrderRequest:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [DRAFT, SUBMITTED, CONFIRMED, RECEIVING, COMPLETED, CANCELLED]
+          example: CONFIRMED
+        expectedDeliveryDate:
+          type: string
+          format: date-time
+          example: 2026-05-20T10:00:00Z
+
+    ReceivePurchaseOrderRequest:
+      type: object
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            required:
+              - productId
+              - quantityReceived
+            properties:
+              productId:
+                type: string
+                format: uuid
+              quantityReceived:
+                type: integer
+                minimum: 1
+                example: 25
+
+    PurchaseOrderResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        supplierId:
+          type: string
+          format: uuid
+        supplier:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            name:
+              type: string
+            email:
+              type: string
+        status:
+          type: string
+          enum: [DRAFT, SUBMITTED, CONFIRMED, RECEIVING, COMPLETED, CANCELLED]
+          example: CONFIRMED
+        expectedDeliveryDate:
+          type: string
+          format: date-time
+          nullable: true
+        totalAmount:
+          type: number
+          format: float
+          example: 1499.50
+        totalItems:
+          type: integer
+          example: 50
+        receivedItems:
+          type: integer
+          example: 25
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                format: uuid
+              productId:
+                type: string
+                format: uuid
+              product:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                  sku:
+                    type: string
+                  name:
+                    type: string
+              quantity:
+                type: integer
+              unitPrice:
+                type: number
+              receivedQuantity:
+                type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    # Supplier Schemas
+    SupplierResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          example: Acme Supplies
+        email:
+          type: string
+          example: contact@acme.com
+        phone:
+          type: string
+          example: +1-555-1234
+        address:
+          type: string
+          example: 123 Supplier St, City
+        productsCount:
+          type: integer
+          example: 5
+        purchaseOrdersCount:
+          type: integer
+          example: 12
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    SupplierDetailResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        address:
+          type: string
+        products:
+          type: array
+          items:
+            $ref: '#/components/schemas/SupplierProductResponse'
+        purchaseOrdersCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CreateSupplierRequest:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+          example: Acme Supplies
+        email:
+          type: string
+          maxLength: 100
+          example: contact@acme.com
+        phone:
+          type: string
+          maxLength: 50
+          example: +1-555-1234
+        address:
+          type: string
+          maxLength: 500
+          example: 123 Supplier St, City
+
+    UpdateSupplierRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        email:
+          type: string
+          maxLength: 100
+        phone:
+          type: string
+          maxLength: 50
+        address:
+          type: string
+          maxLength: 500
+
+    SupplierProductResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        productId:
+          type: string
+          format: uuid
+        productSku:
+          type: string
+          example: SKU-001
+        productName:
+          type: string
+          example: Widget A
+        supplierSku:
+          type: string
+          example: SUP-001
+        price:
+          type: number
+          format: float
+          example: 29.99
+        leadTimeDays:
+          type: integer
+          example: 7
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    AddSupplierProductRequest:
+      type: object
+      required:
+        - productId
+        - supplierSku
+        - price
+      properties:
+        productId:
+          type: string
+          format: uuid
+        supplierSku:
+          type: string
+          example: SUP-001
+        price:
+          type: number
+          minimum: 0.01
+          example: 29.99
+        leadTimeDays:
+          type: integer
+          minimum: 0
+          example: 7
+
+    # Inventory Movement Schemas
+    InventoryMovementListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/InventoryMovementResponse'
+        pagination:
+          type: object
+          properties:
+            total:
+              type: integer
+            limit:
+              type: integer
+            offset:
+              type: integer
+
+    InventoryMovementResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          type: string
+          enum: [IN, OUT, ADJUSTMENT, TRANSFER_OUT, TRANSFER_IN, RETURN]
+          example: ADJUSTMENT
+        quantity:
+          type: integer
+          example: 10
+        referenceId:
+          type: string
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        inventory:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            product:
+              type: object
+              properties:
+                id:
+                  type: string
+                  format: uuid
+                sku:
+                  type: string
+                name:
+                  type: string
+            location:
+              type: object
+              properties:
+                id:
+                  type: string
+                  format: uuid
+                name:
+                  type: string
+
+    # Reorder Point Schemas
+    ReorderPointResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        productId:
+          type: string
+          format: uuid
+        locationId:
+          type: string
+          format: uuid
+        product:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            sku:
+              type: string
+            name:
+              type: string
+        minQuantity:
+          type: integer
+          example: 10
+        maxQuantity:
+          type: integer
+          example: 50
+        currentStock:
+          type: integer
+          example: 8
+        reservedStock:
+          type: integer
+          example: 2
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CreateReorderPointRequest:
+      type: object
+      required:
+        - productId
+        - locationId
+        - minQuantity
+        - maxQuantity
+      properties:
+        productId:
+          type: string
+          format: uuid
+        locationId:
+          type: string
+          format: uuid
+        minQuantity:
+          type: integer
+          minimum: 0
+          example: 10
+        maxQuantity:
+          type: integer
+          minimum: 0
+          example: 50
+
+    UpdateReorderPointRequest:
+      type: object
+      properties:
+        minQuantity:
+          type: integer
+          minimum: 0
+          example: 15
+        maxQuantity:
+          type: integer
+          minimum: 0
+          example: 60
 
   securitySchemes:
     BearerAuth:

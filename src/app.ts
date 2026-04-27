@@ -7,6 +7,13 @@ import YAML from 'yamljs';
 import authRoutes from './routes/auth.routes';
 import productRoutes from './routes/product.routes';
 import transferRoutes from './routes/transfer.routes';
+import inventoryRoutes from './routes/inventory.routes';
+import locationRoutes from './routes/location.routes';
+import auditRoutes from './routes/audit.routes';
+import reportRoutes from './routes/report.routes';
+import purchaseOrderRoutes from './routes/purchase-order.routes';
+import supplierRoutes from './routes/supplier.routes';
+import reorderPointRoutes from './routes/reorder-point.routes';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 import { logger } from './config/logger';
 
@@ -52,6 +59,13 @@ export function createApp(): Application {
   app.use('/auth', authRoutes);
   app.use('/products', productRoutes);
   app.use('/transfers', transferRoutes);
+  app.use('/inventory', inventoryRoutes);
+  app.use('/locations', locationRoutes);
+  app.use('/audit-logs', auditRoutes);
+  app.use('/reports', reportRoutes);
+  app.use('/purchase-orders', purchaseOrderRoutes);
+  app.use('/suppliers', supplierRoutes);
+  app.use('/reorder-points', reorderPointRoutes);
 
   // 404 handler
   app.use(notFoundHandler);
