@@ -2,6 +2,8 @@ import express, { Application } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
+import swaggerUi from 'swagger-ui-express';
+import YAML from 'yamljs';
 import authRoutes from './routes/auth.routes';
 import productRoutes from './routes/product.routes';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
@@ -16,7 +18,7 @@ export function createApp(): Application {
   // Security middleware
   app.use(helmet());
   app.use(cors({
-    origin: process.env.CORS_ORIGIN || '*',
+    origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
     credentials: true,
   }));
 
@@ -40,6 +42,10 @@ export function createApp(): Application {
       timestamp: new Date().toISOString(),
     });
   });
+
+  // API documentation (Swagger UI)
+  const swaggerDocument = YAML.load('./docs/openapi.yaml');
+  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
   // API routes
   app.use('/auth', authRoutes);

@@ -1,12 +1,14 @@
 import { scheduleReorderCheck, triggerManualReorderCheck } from './reorderCheck';
+import { scheduleDeadStockJob } from './deadStock.job';
 
 /**
  * Initialize all background jobs and scheduled tasks
  */
-export const initializeJobs = (): void => {
+export function initializeJobs() {
   // Schedule periodic reorder checks
   scheduleReorderCheck();
-};
+  scheduleDeadStockJob();
+}
 
-export { triggerManualReorderCheck };
+export { triggerManualReorderCheck, scheduleReorderCheck, scheduleDeadStockJob };
 export * from './reorderCheck';
