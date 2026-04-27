@@ -47,20 +47,21 @@ class TransferService {
           const transferItems = [];
 
           for (const item of data.items) {
-            // SELECT FOR UPDATE to lock inventory row
-            const inventory = await tx.inventory.findFirst({
-              where: {
-                productId: item.productId,
-                locationId: data.fromLocationId,
-                tenantId,
-              },
-            });
+            // SELECT FOR UPDATE to lock inventory row - prevents concurrent modifications
+            const inventory = await tx.$queryRaw`
+              SELECT * FROM inventory 
+              WHERE "productId" = ${item.productId} 
+                AND "locationId" = ${data.fromLocationId}
+                AND "tenantId" = ${tenantId}
+              FOR UPDATE
+            `;
 
-            if (!inventory) {
+            if (!inventory || (inventory as any[]).length === 0) {
               throw new Error(`PRODUCT_NOT_IN_LOCATION:${item.productId}`);
             }
 
-            const available = inventory.quantity - inventory.reservedQuantity;
+            const inv = (inventory as any[])[0];
+            const available = inv.quantity - inv.reservedQuantity;
             if (available < item.quantity) {
               throw new Error(`INSUFFICIENT_STOCK:${item.productId}`);
             }

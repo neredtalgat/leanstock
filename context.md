@@ -1,442 +1,95 @@
-0.1. Инициализация проекта
-plain
-Copy
-mkdir leanstock && cd leanstock
-npm init -y
-0.2. Установка зависимостей
-bash
-Copy
-# Core
-npm install express@4.18.2 cors helmet compression
-npm install prisma@5.7.0 @prisma/client
-npm install jsonwebtoken bcryptjs
-npm install zod
-npm install ioredis bullmq
-npm install swagger-ui-express yamljs
-npm install pino pino-pretty
-
-# Dev
-npm install -D typescript @types/express @types/node @types/bcryptjs @types/jsonwebtoken @types/cors @types/compression @types/swagger-ui-express
-npm install -D jest @types/jest ts-jest supertest @types/supertest
-npm install -D nodemon ts-node eslint @typescript-eslint/parser @typescript-eslint/eslint-plugin prettier
-0.3. Инициализация TypeScript и Prisma
-bash
-Copy
-npx tsc --init
-npx prisma init
-0.4. Создание файловой структуры (из 06-project-structure.txt):
-plain
-Copy
-leanstock/
-├── src/
-│   ├── config/         # env.ts, database.ts, redis.ts, logger.ts
-│   ├── middleware/     # auth.ts, tenant.ts, rbac.ts, rateLimit.ts, errorHandler.ts, validate.ts
-│   ├── schemas/        # zod schemas
-│   ├── services/       # business logic
-│   ├── controllers/    # HTTP handlers
-│   ├── routes/         # route definitions
-│   ├── jobs/           # background workers
-│   ├── utils/          # helpers
-│   ├── types/          # TypeScript augmentations
-│   ├── app.ts          # Express app
-│   └── server.ts       # entry point
-├── prisma/
-│   ├── schema.prisma   # из 03-database-schema-fixed.txt
-│   └── migrations/
-├── tests/
-│   ├── unit/
-│   ├── integration/
-│   └── setup.ts
-├── docs/
-│   └── openapi.yaml    # из 04-openapi-fixed.yaml
-├── docker-compose.yml
-├── Dockerfile
-├── .env.example
-├── .github/workflows/ci.yml
-├── jest.config.js
-├── tsconfig.json
-└── package.json
-Этап 1: Конфигурация и инфраструктура (2–3 часа)
-1.1. src/config/env.ts — валидация окружения через Zod
-NODE_ENV, PORT, DATABASE_URL, REDIS_URL
-JWT_SECRET (min 32 chars), JWT_EXPIRES_IN, JWT_REFRESH_EXPIRES_IN
-BCRYPT_ROUNDS
-RATE_LIMIT_*
-Fail-fast: если секреты отсутствуют или слабые — process.exit(1)
-1.2. src/config/database.ts — Prisma Client с RLS extension
-TypeScript
-Copy
-// Ключевой момент: SET LOCAL для каждого запроса/транзакции
-// Использовать AsyncLocalStorage для tenant context
-1.3. src/config/redis.ts — подключение к Redis, загрузка Lua-скриптов
-1.4. src/config/logger.ts — Pino logger
-1.5. docker-compose.yml — PostgreSQL 15 + Redis 7 + App
-yaml
-Copy
-version: '3.8'
-services:
-  postgres:
-    image: postgres:15-alpine
-    environment:
-      POSTGRES_USER: leanstock
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-      POSTGRES_DB: leanstock
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
-  
-  redis:
-    image: redis:7-alpine
-    ports:
-      - "6379:6379"
-  
-  app:
-    build: .
-    ports:
-      - "3000:3000"
-    environment:
-      DATABASE_URL: postgresql://leanstock:${DB_PASSWORD}@postgres:5432/leanstock
-      REDIS_URL: redis://redis:6379
-    depends_on:
-      - postgres
-      - redis
-
-volumes:
-  postgres_data:
-Этап 2: База данных и миграции (2–3 часа)
-2.1. Перенести schema.prisma из 03-database-schema-fixed.txt
-Все модели: Tenant, User, ApiKey, Location, BinLocation, Product, ProductImage, ProductVariant, Inventory, InventoryMovement, TransferOrder, TransferItem, Supplier, SupplierProduct, PurchaseOrder, PurchaseOrderItem, ReorderPoint, DemandHistory, DeadStockRule, PriceHistory, Notification, AuditLog
-Важно: @@unique, @@index, dbgenerated для RLS
-2.2. Первая миграция
-bash
-Copy
-npx prisma migrate dev --name init
-2.3. Добавить RLS SQL в сгенерированный migration.sql
-ENABLE ROW LEVEL SECURITY для всех таблиц
-FORCE ROW LEVEL SECURITY для критичных
-CREATE POLICY tenant_isolation_* через create_tenant_policy() helper
-CREATE FUNCTION current_tenant_id(), is_super_admin()
-CREATE FUNCTION calculate_days_in_inventory()
-CREATE TRIGGER trigger_calc_days_in_inventory
-CHECK constraints (все из fixed schema)
-Indexes для cursor pagination, dead stock, barcode
-2.4. Seed-данные для тестирования
-TypeScript
-Copy
-// prisma/seed.ts
-// Создать: 1 tenant, 2 locations, 2 products, 1 admin user (bcrypt hash)
-Этап 3: Аутентификация и авторизация (4–5 часа) — MANDATORY BASELINE
-Это 20% проекта, и оно блокирует всё остальное. Должно быть 100% готово.
-3.1. Zod schemas (src/schemas/auth.schema.ts)
-TypeScript
-Copy
-export const registerSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(8).max(128)
-    .regex(/[A-Z]/).regex(/[a-z]/).regex(/[0-9]/),
-  firstName: z.string().min(1).optional(),
-  lastName: z.string().min(1).optional(),
-  role: z.nativeEnum(UserRole).default(UserRole.STORE_ASSOCIATE),
-  tenantId: z.string().uuid().optional(), // для Super Admin создания
-});
-
-export const loginSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(1),
-});
-
-export const refreshSchema = z.object({
-  refreshToken: z.string().min(20),
-});
-3.2. Auth Service (src/services/auth.service.ts)
-TypeScript
-Copy
-class AuthService {
-  async register(data: RegisterInput): Promise<User> {
-    // 1. Проверить уникальность email в tenant
-    // 2. bcrypt.hash(password, 12)
-    // 3. Создать User через Prisma
-    // 4. Вернуть user (без passwordHash)
-  }
-
-  async login(email: string, password: string, tenantId: string): Promise<TokenPair> {
-    // 1. Найти user по email + tenantId
-    // 2. bcrypt.compare(password, hash)
-    // 3. Генерировать accessToken (15 min) + refreshToken (7 days)
-    // 4. Сохранить refreshToken хэш в Redis (для revocation)
-    // 5. Вернуть TokenPair
-  }
-
-  async logout(refreshToken: string): Promise<void> {
-    // 1. Декодировать refreshToken
-    // 2. Удалить из Redis (blacklist)
-  }
-
-  async refresh(refreshToken: string): Promise<TokenPair> {
-    // 1. Проверить refreshToken (JWT verify)
-    // 2. Проверить что не в blacklist (Redis)
-    // 3. Сгенерировать новую пару
-    // 4. Старый refreshToken → blacklist
-    // 5. Вернуть новую пару
-  }
-}
-3.3. JWT Middleware (src/middleware/auth.ts)
-TypeScript
-Copy
-export const authenticate = (req, res, next) => {
-  // 1. Извлечь Bearer token из Authorization
-  // 2. jwt.verify(token, JWT_SECRET, { issuer, audience, algorithms: ['HS256'] })
-  // 3. Проверить type === 'access'
-  // 4. req.user = decoded
-  // 5. next()
-};
-3.4. RBAC Middleware (src/middleware/rbac.ts)
-TypeScript
-Copy
-const roleHierarchy = {
-  SUPER_ADMIN: 100, TENANT_ADMIN: 90, REGIONAL_MANAGER: 70,
-  STORE_MANAGER: 50, STORE_ASSOCIATE: 30, SUPPLIER: 10
-};
-
-export const requirePermission = (permission: string) => {
-  return (req, res, next) => {
-    // 1. Получить userRole из req.user
-    // 2. Проверить в permissions matrix
-    // 3. Если нет доступа → 403 + audit log
-    // 4. next()
-  };
-};
-
-export const requireRole = (minRole: UserRole) => {
-  return (req, res, next) => {
-    // 1. Сравнить roleHierarchy
-    // 2. Если level < required → 403
-  };
-};
-3.5. Rate Limiting (src/middleware/rateLimit.ts)
-TypeScript
-Copy
-// Redis Lua token bucket для /auth/*
-export const authRateLimit = rateLimit('auth'); // 5 attempts / 15 min per IP
-3.6. Auth Controller (src/controllers/auth.controller.ts)
-POST /auth/register — authRateLimit, validate(registerSchema), register
-POST /auth/login — authRateLimit, validate(loginSchema), login
-POST /auth/refresh — validate(refreshSchema), refresh
-POST /auth/logout — authenticate, logout
-3.7. Auth Routes (src/routes/auth.routes.ts)
-Этап 4: Мультитенантность и RLS (2–3 часа)
-4.1. Tenant Middleware (src/middleware/tenant.ts)
-TypeScript
-Copy
-export const injectTenant = (req, res, next) => {
-  // 1. Извлечь X-Tenant-ID из header ИЛИ tenantId из JWT payload
-  // 2. Валидировать UUID
-  // 3. Установить в AsyncLocalStorage
-  // 4. Prisma extension использует это для SET LOCAL
-  next();
-};
-4.2. Prisma Client Extension (src/config/database.ts)
-TypeScript
-Copy
-const prisma = new PrismaClient().$extends({
-  query: {
-    $allModels: {
-      async findMany({ args, query }) {
-        const tenantId = asyncLocalStorage.getStore()?.tenantId;
-        if (tenantId) {
-          args.where = { ...args.where, tenantId };
-        }
-        return query(args);
-      },
-      // Аналогично для findUnique, findFirst, update, delete, count
-    }
-  }
-});
-4.3. Super Admin Bypass
-TypeScript
-Copy
-// В middleware: если role === SUPER_ADMIN, установить app.bypass_rls = 'on'
-// В RLS policy: OR current_setting('app.bypass_rls', true) = 'on'
-Этап 5: Core Business Logic — Product Catalog (2–3 часа)
-5.1. Product Service (src/services/product.service.ts)
-TypeScript
-Copy
-class ProductService {
-  async create(data: ProductInput, tenantId: string): Promise<Product> {
-    // 1. Проверить уникальность SKU в tenant
-    // 2. Создать Product
-    // 3. Если есть variants — создать ProductVariant (max 5)
-    // 4. Создать Inventory записи для каждой location (quantity=0)
-    // 5. Audit log
-  }
-
-  async list(tenantId: string, cursor?: string, limit: number = 20) {
-    // Cursor-based pagination
-  }
-
-  async uploadImage(productId: string, file: Buffer, isPrimary: boolean) {
-    // Сохранить в S3/local, создать ProductImage
-  }
-}
-5.2. Product Controller + Routes
-GET /products — authenticate, injectTenant, listProducts
-POST /products — authenticate, injectTenant, requirePermission('products:create'), createProduct
-POST /products/:id/images — uploadProductImage
-Этап 6: Core Business Logic — Atomic Transfer (3–4 часа)
-6.1. Transfer Service (src/services/transfer.service.ts)
-TypeScript
-Copy
-class TransferService {
-  async create(data: CreateTransferInput, userId: string, tenantId: string): Promise<TransferOrder> {
-    return await prisma.$transaction(async (tx) => {
-      // 1. Проверить что source !== destination
-      // 2. Для каждого item:
-      //    a. SELECT FOR UPDATE inventory at source
-      //    b. Проверить available >= quantity
-      //    c. Decrement available at source
-      //    d. Increment inTransit at source
-      // 3. Создать TransferOrder (status: DRAFT)
-      // 4. Создать TransferItem для каждого item
-      // 5. Если totalValue > 1000 → requiresApproval = true, status = PENDING_APPROVAL
-      // 6. Audit log
-    }, { isolationLevel: 'Serializable' });
-  }
-
-  async approve(transferId: string, approved: boolean, reason: string, userId: string) {
-    // 1. Проверить role >= REGIONAL_MANAGER
-    // 2. Проверить status === PENDING_APPROVAL
-    // 3. Если approved → status = APPROVED
-    // 4. Если rejected → status = CANCELLED, вернуть stock
-  }
-
-  async ship(transferId: string, carrier: string, trackingNumber: string) {
-    // 1. Проверить status === APPROVED
-    // 2. status = IN_TRANSIT
-    // 3. Записать shippedAt
-  }
-
-  async receive(transferId: string, items: ReceiveItemInput[]) {
-    // 1. Проверить status === IN_TRANSIT
-    // 2. Для каждого item: проверить quantityReceived <= quantityShipped
-    // 3. Обновить inventory at destination (increment available)
-    // 4. Обновить inventory at source (decrement inTransit)
-    // 5. Если все получены → status = COMPLETED
-    // 6. Если частично → status = PARTIALLY_RECEIVED
-  }
-}
-6.2. Transfer Controller + Routes
-POST /transfers — authenticate, injectTenant, requirePermission('transfers:create')
-POST /transfers/:id/approve — authenticate, injectTenant, requirePermission('transfers:approve')
-POST /transfers/:id/ship — authenticate, injectTenant
-POST /transfers/:id/receive — authenticate, injectTenant
-Этап 7: Core Business Logic — Dead Stock Cron (2–3 часа)
-7.1. Dead Stock Service (src/services/deadStock.service.ts)
-TypeScript
-Copy
-class DeadStockService {
-  async applyDiscounts(tenantId: string): Promise<number> {
-    // 1. Найти inventory с daysInInventory > 30
-    // 2. Определить tier по дням
-    // 3. Рассчитать newPrice = max(oldPrice * (1 - discount), baseCost * 1.1)
-    // 4. Обновить retailPrice в Product
-    // 5. Создать PriceHistory запись
-    // 6. Создать Notification для менеджеров
-    // 7. Вернуть количество обновленных
-  }
-}
-7.2. BullMQ Job (src/jobs/deadStock.job.ts)
-TypeScript
-Copy
-// Запускать ежедневно в 2:00 AM
-// Для КАЖДОГО активного tenant:
-//   1. Установить tenant context
-//   2. Вызвать deadStockService.applyDiscounts(tenantId)
-//   3. Логировать результат
-7.3. Или pg_cron fallback (если выбран) — использовать dead_stock_cron_wrapper() из fixed schema
-Этап 8: Swagger UI и API Docs (1 час)
-8.1. src/app.ts
-TypeScript
-Copy
-import swaggerUi from 'swagger-ui-express';
-import YAML from 'yamljs';
-
-const swaggerDocument = YAML.load('./docs/openapi.yaml');
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
-8.2. Убедиться что все endpoints из 04-openapi-fixed.yaml реализованы или помечены как Not Implemented
-Этап 9: Тестирование (3–4 часа)
-9.1. Unit Tests (tests/unit/)
-TypeScript
-Copy
-// auth.service.test.ts
-describe('AuthService', () => {
-  test('register creates user with hashed password');
-  test('login returns tokens for valid credentials');
-  test('login rejects invalid password');
-  test('refresh rejects blacklisted token');
-});
-
-// deadStock.service.test.ts
-describe('DeadStockService', () => {
-  test('applyDiscounts calculates correct tier');
-  test('applyDiscounts respects cost + 10% floor');
-});
-9.2. Integration Tests (tests/integration/)
-TypeScript
-Copy
-// auth.test.ts
-describe('Auth API', () => {
-  test('POST /auth/register creates user');
-  test('POST /auth/login returns 429 after 5 attempts');
-  test('GET /products without token returns 401');
-  test('GET /products with wrong role returns 403');
-});
-
-// transfer.test.ts
-describe('Transfer API', () => {
-  test('POST /transfers creates transfer with SELECT FOR UPDATE');
-  test('transfer prevents overselling (409 Conflict)');
-  test('transfer > $1000 requires approval');
-});
-9.3. Test Setup (tests/setup.ts)
-TypeScript
-Copy
-// 1. Поднять test database (Docker)
-// 2. Run migrations
-// 3. Seed test data
-// 4. After all: truncate tables
-Этап 10: CI/CD и финализация (1–2 часа)
-10.1. .github/workflows/ci.yml
-yaml
-Copy
-name: CI
-on: [push, pull_request]
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:15
-        env:
-          POSTGRES_PASSWORD: test
-          POSTGRES_DB: leanstock_test
-      redis:
-        image: redis:7
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-      - run: npm ci
-      - run: npx prisma migrate deploy
-      - run: npm run lint
-      - run: npm run test
-      - run: npm run build
-      - run: docker build .
-10.2. README.md
-Setup instructions
-Architecture decisions
-docker compose up command
-Test command
-API docs URL
-10.3. CHANGELOG.md — если есть отклонения от blueprint
+You have your blueprint. Now build it.
+This assignment is the first coding milestone of your final project. You will translate your technical specification into a production-grade backend codebase. By the end of this sprint, your repository must be runnable by a stranger using only docker compose up, and your API documentation must be live.
+Scope: You must complete at least 20% of your entire final project in this sprint.
+Mandatory Baseline: That 20% must include a complete, working authentication and authorization subsystem — registration, login, logout, JWT access/refresh tokens, and role-based access control (RBAC) — before any business logic. No exceptions.
+📋 Description
+This is the implementation based on your approved blueprint.
+You will implement the foundational infrastructure, the full authentication layer, and the core business transaction for your chosen track. Everything must be containerized, tested, and documented.
+🔧 Requirements
+1. Project Bootstrap & Infrastructure
+Environment Validation: App refuses to boot if critical secrets are missing. Use Pydantic Settings (FastAPI) or validated dotenv loader (Express).
+Database Connection: Working SQLModel engine with get_session() dependency OR PrismaClient singleton with proper disconnection handling.
+Migration Baseline: First migration that creates your core schema. Must match your blueprint database-schema.docx exactly.
+README.md: Clear setup instructions and architecture decisions.
+2. Authentication & Authorization — MANDATORY BASELINE
+This subsystem is non-negotiable and must be 100% complete. It is the prerequisite for everything else in your 20% minimum. Your business logic endpoints will be tested using tokens generated by this system.
+You must implement all of the following:
+Registration: New user creation with validated input (unique email/username, password strength rules).
+Login: Credential verification, issuance of JWT access token and refresh token.
+Logout: Token revocation / refresh token invalidation.
+Token Refresh: Exchange valid refresh token for a new access token. Access tokens must expire; refresh tokens must be reusable but revocable.
+Password Security: bcrypt or Argon2 hashing with salt. Never store plaintext.
+RBAC Middleware: At least two distinct roles (e.g., admin/user, or track-specific: merchant/customer, driver/admin). Middleware must enforce role restrictions — unauthorized roles receive 403 Forbidden, not just 401 Unauthorized.
+Rate Limiting: rate-limiter package or Redis-based token bucket on /auth/login and /auth/register (max 5 attempts per minute per IP).
+CORS: Properly configured. No wildcard (*) origins in production configuration.
+All auth endpoints must be documented in your Swagger UI / API docs with realistic request/response examples.
+3. Core Business Logic Implementation
+Implement the foundational transaction for your chosen track. This is the critical engine that everything else depends on. These endpoints must be protected by the auth layer above — unauthenticated requests must be rejected.
+Table
+Track	What You Must Code & Have Working
+LeanStock	Multi-tenant product catalog + atomic inventory transfer endpoint between two locations with SELECT FOR UPDATE OR Redis distributed lock. Dead stock decay cron job (or background worker) that applies discount logic.
+RescueBite	Food item state machine (Fresh → Discounted → Free → Compost) with time-based transitions. Allergy parser endpoint: accept ingredient JSON, validate against user allergy profile with strict schema enforcement. Redis-based stock reservation during checkout.
+CircleSave	Circle creation + member enrollment. First automated payout calculation with deterministic rotation order. Double-entry ledger schema: every transaction records debit/credit pair in a single atomic database transaction.
+ShopBuilder	Merchant onboarding with true multi-tenancy (schema-per-tenant or DB-per-tenant). Dynamic connection routing working for at least 2 mock merchants. Product variant matrix endpoint: generate SKUs from Size × Color × Material with independent inventory counts.
+Saukele	Event/wedding creation + gift registry item addition. Pool funding contribution endpoint with multi-currency snapshot (lock exchange rate at transaction time). Recursive family tree query endpoint (self-referential table) returning gift tier obligations.
+SylLab	AST-based code submission endpoint (accept Python or JS code string). Baseline fingerprinting schema (immutable Week 1 storage with content hash). Sophistication scoring algorithm (rule-based, 0-100) calculating at least 5 metrics: error handling tier, architecture tier, type safety, naming verbosity, and one advanced technique. One-shot comparison endpoint against baseline.
+Game / BYOI	Your approved core mechanic: authoritative server validation, economy transaction engine, or matchmaking queue. Must include the specific 5 complexity requirements from your approved pitch.
+4. API Documentation
+Swagger UI or equivalent API documentation must be live and accessible.
+FastAPI: Native /docs generated from your openapi.yaml.
+Express: Mounted Swagger UI (e.g., swagger-ui-express) serving your openapi.yaml.
+Contract Compliance: Every implemented endpoint must match the request/response schemas in your blueprint. If you deviate, document the architectural reason in a CHANGELOG.md.
+Error Handling: Standardized error responses for 400, 401, 403, 404, 409, 422, 500 on every implemented endpoint.
+Pagination: Cursor-based pagination working on at least one list endpoint.
+5. Testing & Quality Assurance
+Unit Tests: Pure business logic tests (e.g., price decay formula, rotation algorithm, SKU generation, sophistication score math). Must run with pytest or jest.
+Integration Tests: At least one test that hits the database and verifies transaction atomicity (e.g., "overselling is impossible," "double-entry ledger balances to zero," "allergy parser rejects invalid schema").
+Auth Integration Tests: Tests proving that protected endpoints reject missing/invalid tokens and that role-based restrictions work (403 for wrong role).
+CI/CD Pipeline: .github/workflows/ci.yml that runs lint + tests + Docker build on every push. A failing test or lint error must make the build red.
+🎤 Oral Defense Requirement
+Before you begin your oral defense, you must open Postman with all your implemented endpoints loaded in separate tabs. This includes every auth endpoint (register, login, refresh, logout) and your business logic endpoints. The examiner will randomly select tabs for live demonstration.
+Your Postman workspace should look like this — every endpoint visible and ready to fire:
+Postman Multiple Tabs Ready for Defense
+Defense Flow:
+Open Postman with all endpoints in separate tabs (auth + business logic).
+Demonstrate full auth flow: Register → Login → Receive tokens → Access protected endpoint with Bearer token → Refresh token → Logout.
+Execute your core business transaction endpoint and explain the response.
+Run your test suite live (pytest or jest).
+Show Swagger UI / API documentation in the browser.
+⚠️ Technical Non-Negotiables
+Table
+Requirement	Specification
+Framework	FastAPI (Python) OR Express.js (Node.js) — must match your Week 1 choice
+ORM	SQLModel (FastAPI) or Prisma (Express). Zero raw SQL queries allowed. All database interaction through ORM models.
+Database	PostgreSQL 15+ (ACID required for all money/inventory/state changes)
+Cache/Queue	This is optional. Redis (used for caching, rate limiting, OR background jobs — not just sitting empty)
+Schema Validation	Pydantic models (FastAPI) or Zod/Prisma input validation (Express) on all request bodies
+Security	No hardcoded secrets. No plaintext passwords. JWT with refresh tokens.
+🔍 Track-Specific Deep Dives
+Address these exact complexities in your code. They must be visible in your repository:
+LeanStock
+Show the SELECT FOR UPDATE OR Redis Redlock implementation in your transfer endpoint.
+Include the dead stock decay function with configurable decay rules (not hardcoded to 10%).
+Tenant isolation: every query must include tenant_id filter or use schema separation.
+RescueBite
+Allergen schema must use enums or CHECK constraints at the database level.
+Price decay must be calculated by application logic or PostgreSQL triggers — document your choice in ARCHITECTURE.md.
+Geospatial: store lat/lng and document your indexing strategy (even if using Haversine).
+CircleSave
+Ledger table must enforce debit_amount = credit_amount per transaction at application level.
+Payout order must be deterministic; "emergency swap" logic must be coded (even if UI comes later).
+Cron logic or scheduled job for automated debit attempts with idempotency keys.
+ShopBuilder
+Multi-tenancy connection pooling must not exhaust PostgreSQL connections. Document max pool size.
+Product variant matrix must generate all SKU combinations programmatically from attribute inputs.
+Webhook table schema must exist with event types, retry counts, and exponential backoff columns.
+Saukele
+Family tree table: self-referential parent_id with recursive CTE query endpoint.
+Pool funding: contribution table tracking partial amounts with escrow state machine (pending → funded → purchased).
+Currency snapshot: amount_kzt, amount_original, exchange_rate_at_time, locked_at_timestamp columns. Never update historical rows.
+SylLab
+Baseline table must have content_hash (SHA-256) and is_immutable flag enforced at application level.
+Sophistication scoring must be rule-based (no ML APIs). Show the rubric in a SCORING_RUBRIC.md file.
+One-shot analysis endpoint: accept current submission + student_id, return compressed_progression_weeks and z_score.
+Game / BYOI
+Implement your 5 approved complexity requirements. Tag each in code with comments: // COMPLEXITY_REQ_1: ...
