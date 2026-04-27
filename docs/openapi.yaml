@@ -365,6 +365,82 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  /transfers:
+    get:
+      summary: List transfers
+      description: Get all transfers for tenant
+      tags:
+        - Transfers
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [DRAFT, PENDING_APPROVAL, APPROVED, IN_TRANSIT, COMPLETED, CANCELLED]
+          description: Filter by status
+      responses:
+        200:
+          description: List of transfers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TransferResponse'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    post:
+      summary: Create transfer
+      description: Create atomic inventory transfer with SELECT FOR UPDATE
+      tags:
+        - Transfers
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTransferRequest'
+      responses:
+        201:
+          description: Transfer created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransferResponse'
+        400:
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        403:
+          description: Forbidden - insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        409:
+          description: Insufficient stock
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
 components:
   schemas:
     HealthResponse:
@@ -626,6 +702,85 @@ components:
           type: object
           nullable: true
         timestamp:
+          type: string
+          format: date-time
+
+    CreateTransferRequest:
+      type: object
+      required:
+        - fromLocationId
+        - toLocationId
+        - items
+      properties:
+        fromLocationId:
+          type: string
+          format: uuid
+          example: loc-001
+        toLocationId:
+          type: string
+          format: uuid
+          example: loc-002
+        items:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            required:
+              - productId
+              - quantity
+            properties:
+              productId:
+                type: string
+                format: uuid
+              quantity:
+                type: integer
+                minimum: 1
+                example: 10
+        notes:
+          type: string
+          example: Transfer for restocking
+
+    TransferResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        fromLocationId:
+          type: string
+          format: uuid
+        toLocationId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [DRAFT, PENDING_APPROVAL, APPROVED, IN_TRANSIT, PARTIALLY_RECEIVED, COMPLETED, CANCELLED]
+          example: DRAFT
+        totalValue:
+          type: number
+          format: float
+          example: 1500.00
+        requiresApproval:
+          type: boolean
+          example: true
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              productId:
+                type: string
+                format: uuid
+              quantity:
+                type: integer
+              quantityShipped:
+                type: integer
+              quantityReceived:
+                type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
           type: string
           format: date-time
 

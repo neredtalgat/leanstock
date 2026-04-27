@@ -6,6 +6,7 @@ import swaggerUi from 'swagger-ui-express';
 import YAML from 'yamljs';
 import authRoutes from './routes/auth.routes';
 import productRoutes from './routes/product.routes';
+import transferRoutes from './routes/transfer.routes';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 import { logger } from './config/logger';
 
@@ -50,6 +51,7 @@ export function createApp(): Application {
   // API routes
   app.use('/auth', authRoutes);
   app.use('/products', productRoutes);
+  app.use('/transfers', transferRoutes);
 
   // 404 handler
   app.use(notFoundHandler);
