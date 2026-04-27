@@ -1,13 +1,33 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { authService } from '../../src/services/auth.service';
-import { tenantDb } from '../../src/config/database';
-import { redis } from '../../src/config/redis';
 import { UserRole } from '@prisma/client';
+import { authService } from '../../src/services/auth.service';
+
+// Get mocked modules
+const { tenantDb } = jest.requireMock('../../src/config/database');
+const { redis } = jest.requireMock('../../src/config/redis');
 
 // Mock dependencies
-jest.mock('../../src/config/database');
-jest.mock('../../src/config/redis');
+jest.mock('../../src/config/database', () => ({
+  tenantDb: {
+    user: {
+      findFirst: jest.fn(),
+      findUnique: jest.fn(),
+      create: jest.fn(),
+      update: jest.fn(),
+    },
+  },
+  asyncLocalStorage: {
+    getStore: jest.fn().mockReturnValue({ tenantId: 'mock-tenant-id' }),
+    run: jest.fn((store, callback) => callback()),
+  },
+}));
+jest.mock('../../src/config/redis', () => ({
+  redis: {
+    setex: jest.fn(),
+    exists: jest.fn(),
+  },
+}));
 jest.mock('bcryptjs');
 jest.mock('jsonwebtoken');
 
