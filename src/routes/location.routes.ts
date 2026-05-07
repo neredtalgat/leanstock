@@ -1,10 +1,10 @@
 import { Router } from 'express';
 import * as locationController from '../controllers/location.controller';
-import { validate } from '../middleware/validate';
+import { validate, validateParams } from '../middleware/validate';
 import { authenticate } from '../middleware/auth';
 import { injectTenant } from '../middleware/tenant';
 import { requirePermission } from '../middleware/rbac';
-import { createLocationSchema } from '../schemas/location.schema';
+import { createLocationSchema, updateLocationSchema, locationIdParamSchema } from '../schemas/location.schema';
 
 const router = Router();
 
@@ -30,6 +30,33 @@ router.post(
   requirePermission('locations:create'),
   validate(createLocationSchema),
   locationController.createLocation,
+);
+
+router.get(
+  '/:id',
+  authenticate,
+  injectTenant,
+  validateParams(locationIdParamSchema),
+  locationController.getLocation,
+);
+
+router.put(
+  '/:id',
+  authenticate,
+  injectTenant,
+  requirePermission('locations:update'),
+  validateParams(locationIdParamSchema),
+  validate(updateLocationSchema),
+  locationController.updateLocation,
+);
+
+router.delete(
+  '/:id',
+  authenticate,
+  injectTenant,
+  requirePermission('locations:delete'),
+  validateParams(locationIdParamSchema),
+  locationController.deleteLocation,
 );
 
 export default router;

@@ -10,6 +10,15 @@ import { RegisterInput, LoginInput } from '../schemas/auth.schema';
 export class AuthService {
   async register(data: RegisterInput, tenantId: string): Promise<any> {
     try {
+      const tenant = await tenantDb.tenant.findFirst({
+        where: { id: tenantId },
+        select: { id: true },
+      });
+
+      if (!tenant) {
+        throw new Error('TENANT_NOT_FOUND');
+      }
+
       // Check email uniqueness within tenant
       const existingUser = await tenantDb.user.findFirst({
         where: {

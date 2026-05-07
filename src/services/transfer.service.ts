@@ -61,7 +61,9 @@ class TransferService {
             }
 
             const inv = (inventory as any[])[0];
-            const available = inv.quantity - inv.reservedQuantity;
+            const quantity = Number(inv.quantity);
+            const reservedQuantity = Number(inv.reservedQuantity);
+            const available = quantity - reservedQuantity;
             if (available < item.quantity) {
               throw new Error(`INSUFFICIENT_STOCK:${item.productId}`);
             }
@@ -80,7 +82,7 @@ class TransferService {
               productId: item.productId,
               quantity: item.quantity,
               quantityShipped: 0,
-              quantityReceived: 0,
+              receivedQuantity: 0,
             });
           }
 

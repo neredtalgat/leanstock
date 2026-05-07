@@ -15,6 +15,9 @@
     "lint": "eslint src --ext .ts",
     "format": "prettier --write src"
   },
+  "prisma": {
+    "seed": "ts-node prisma/seed.ts"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",

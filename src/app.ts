@@ -14,6 +14,11 @@ import reportRoutes from './routes/report.routes';
 import purchaseOrderRoutes from './routes/purchase-order.routes';
 import supplierRoutes from './routes/supplier.routes';
 import reorderPointRoutes from './routes/reorder-point.routes';
+import analyticsRoutes from './routes/analytics.routes';
+import systemSettingsRoutes from './routes/system-settings.routes';
+import supplierReturnRoutes from './routes/supplier-return.routes';
+import notificationRoutes from './routes/notification.routes';
+import tenantRoutes from './routes/tenant.routes';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 import { logger } from './config/logger';
 
@@ -52,8 +57,17 @@ export function createApp(): Application {
   });
 
   // API documentation (Swagger UI)
-  const swaggerDocument = YAML.load('./docs/openapi.yaml');
-  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+  if (process.env.NODE_ENV === 'development') {
+    // Hot reload: load YAML on every request in development
+    app.use('/api-docs', swaggerUi.serve, (req, res, next) => {
+      const swaggerDocument = YAML.load('./docs/openapi.yaml');
+      swaggerUi.setup(swaggerDocument)(req, res, next);
+    });
+  } else {
+    // Production: load once
+    const swaggerDocument = YAML.load('./docs/openapi.yaml');
+    app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+  }
 
   // API routes
   app.use('/auth', authRoutes);
@@ -66,6 +80,11 @@ export function createApp(): Application {
   app.use('/purchase-orders', purchaseOrderRoutes);
   app.use('/suppliers', supplierRoutes);
   app.use('/reorder-points', reorderPointRoutes);
+  app.use('/analytics', analyticsRoutes);
+  app.use('/system', systemSettingsRoutes);
+  app.use('/supplier-returns', supplierReturnRoutes);
+  app.use('/notifications', notificationRoutes);
+  app.use('/tenants', tenantRoutes);
 
   // 404 handler
   app.use(notFoundHandler);

@@ -1,11 +1,17 @@
 import { Router } from 'express';
 import * as inventoryController from '../controllers/inventory.controller';
 import * as movementController from '../controllers/inventory-movement.controller';
-import { validate, validateQuery } from '../middleware/validate';
+import { validate, validateQuery, validateParams } from '../middleware/validate';
 import { authenticate } from '../middleware/auth';
 import { injectTenant } from '../middleware/tenant';
 import { requirePermission } from '../middleware/rbac';
-import { adjustInventorySchema, listInventorySchema } from '../schemas/inventory.schema';
+import {
+  adjustInventorySchema,
+  listInventorySchema,
+  inventoryIdParamSchema,
+  createInventorySchema,
+  updateInventorySchema,
+} from '../schemas/inventory.schema';
 import { listMovementsSchema } from '../schemas/inventory-movement.schema';
 
 const router = Router();
@@ -18,8 +24,44 @@ router.get(
   '/',
   authenticate,
   injectTenant,
-  validate(listInventorySchema),
+  validateQuery(listInventorySchema),
   inventoryController.listInventory,
+);
+
+router.get(
+  '/:id',
+  authenticate,
+  injectTenant,
+  validateParams(inventoryIdParamSchema),
+  inventoryController.getInventoryById,
+);
+
+router.post(
+  '/',
+  authenticate,
+  injectTenant,
+  requirePermission('inventory:create'),
+  validate(createInventorySchema),
+  inventoryController.createInventory,
+);
+
+router.put(
+  '/:id',
+  authenticate,
+  injectTenant,
+  requirePermission('inventory:update'),
+  validateParams(inventoryIdParamSchema),
+  validate(updateInventorySchema),
+  inventoryController.updateInventory,
+);
+
+router.delete(
+  '/:id',
+  authenticate,
+  injectTenant,
+  requirePermission('inventory:delete'),
+  validateParams(inventoryIdParamSchema),
+  inventoryController.deleteInventory,
 );
 
 /**

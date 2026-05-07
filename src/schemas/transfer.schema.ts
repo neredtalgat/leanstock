@@ -1,20 +1,24 @@
 import { z } from 'zod';
 
 export const TransferItemSchema = z.object({
-  productId: z.string().uuid(),
+  productId: z.string().cuid(),
   quantity: z.number().int().positive(),
 });
 
 export const CreateTransferInput = z.object({
-  fromLocationId: z.string().uuid(),
-  toLocationId: z.string().uuid(),
+  fromLocationId: z.string().cuid(),
+  toLocationId: z.string().cuid(),
   items: z.array(TransferItemSchema).min(1),
   notes: z.string().optional(),
 });
 
 export const ReceiveItemInput = z.object({
-  productId: z.string().uuid(),
+  productId: z.string().cuid(),
   quantityReceived: z.number().int().nonnegative(),
+});
+
+export const ReceiveTransferInput = z.object({
+  items: z.array(ReceiveItemInput).min(1),
 });
 
 export const ShipTransferInput = z.object({
@@ -25,6 +29,10 @@ export const ShipTransferInput = z.object({
 export const ApproveTransferInput = z.object({
   approved: z.boolean(),
   reason: z.string().optional(),
+});
+
+export const TransferIdParamSchema = z.object({
+  id: z.string().cuid(),
 });
 
 export type CreateTransferInput = z.infer<typeof CreateTransferInput>;

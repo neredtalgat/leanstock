@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider      = "prisma-client-js"
   binaryTargets = ["native", "debian-openssl-3.0.x"]
@@ -9,6 +6,458 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+model Tenant {
+  id                 String              @id @default(uuid())
+  name               String
+  isActive           Boolean             @default(true)
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  auditLogs          AuditLog[]
+  deadStockRules     DeadStockRule[]
+  demandHistory      DemandHistory[]
+  inventory          Inventory[]
+  inventoryMovements InventoryMovement[]
+  locations          Location[]
+  notifications      Notification[]
+  priceHistory       PriceHistory[]
+  products           Product[]
+  purchaseOrders     PurchaseOrder[]
+  reorderPoints      ReorderPoint[]
+  supplierReturns    SupplierReturn[]
+  suppliers          Supplier[]
+  transferOrders     TransferOrder[]
+  users              User[]
+
+  @@map("tenants")
+}
+
+model User {
+  id           String     @id @default(cuid())
+  tenantId     String
+  email        String
+  passwordHash String
+  firstName    String?
+  lastName     String?
+  role         UserRole   @default(STORE_ASSOCIATE)
+  isActive     Boolean    @default(true)
+  lastLoginAt  DateTime?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  apiKeys      ApiKey[]
+  auditLogs    AuditLog[]
+  tenant       Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, email])
+  @@index([tenantId])
+  @@map("users")
+}
+
+model ApiKey {
+  id         String    @id @default(cuid())
+  userId     String
+  name       String
+  keyHash    String    @unique
+  isActive   Boolean   @default(true)
+  lastUsedAt DateTime?
+  expiresAt  DateTime?
+  createdAt  DateTime  @default(now())
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("api_keys")
+}
+
+model Location {
+  id                 String           @id @default(cuid())
+  tenantId           String
+  name               String
+  type               String
+  address            String?
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  binLocations       BinLocation[]
+  inventory          Inventory[]
+  tenant             Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  supplierReturns    SupplierReturn[]
+  transferOrdersFrom TransferOrder[]  @relation("transferFrom")
+  transferOrdersTo   TransferOrder[]  @relation("transferTo")
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+  @@map("locations")
+}
+
+model BinLocation {
+  id         String   @id @default(cuid())
+  locationId String
+  binCode    String
+  capacity   Int
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  location   Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  @@unique([locationId, binCode])
+  @@index([locationId])
+  @@map("bin_locations")
+}
+
+model Product {
+  id                  String               @id @default(cuid())
+  tenantId            String
+  sku                 String
+  name                String
+  description         String?
+  baseCost            Float
+  retailPrice         Float
+  weight              Float?
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  demandHistory       DemandHistory[]
+  inventory           Inventory[]
+  priceHistory        PriceHistory[]
+  images              ProductImage[]
+  variants            ProductVariant[]
+  tenant              Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  supplierProducts    SupplierProduct[]
+  supplierReturnItems SupplierReturnItem[]
+
+  @@unique([tenantId, sku])
+  @@index([tenantId])
+  @@map("products")
+}
+
+model ProductImage {
+  id        String   @id @default(cuid())
+  productId String
+  url       String
+  isPrimary Boolean  @default(false)
+  createdAt DateTime @default(now())
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@map("product_images")
+}
+
+model ProductVariant {
+  id        String   @id @default(cuid())
+  productId String
+  name      String
+  sku       String
+  value     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, sku])
+  @@index([productId])
+  @@map("product_variants")
+}
+
+model Inventory {
+  id               String              @id @default(cuid())
+  tenantId         String
+  productId        String
+  locationId       String
+  quantity         Int                 @default(0)
+  reservedQuantity Int                 @default(0)
+  inTransit        Int                 @default(0)
+  daysInInventory  Int?
+  lastMovedAt      DateTime?
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+  location         Location            @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  product          Product             @relation(fields: [productId], references: [id], onDelete: Cascade)
+  tenant           Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  movements        InventoryMovement[]
+
+  @@unique([productId, locationId])
+  @@index([tenantId])
+  @@index([productId])
+  @@index([locationId])
+  @@map("inventory")
+}
+
+model InventoryMovement {
+  id          String                @id @default(cuid())
+  tenantId    String
+  inventoryId String
+  type        InventoryMovementType
+  quantity    Int
+  referenceId String?
+  notes       String?
+  createdAt   DateTime              @default(now())
+  inventory   Inventory             @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
+  tenant      Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([inventoryId])
+  @@index([createdAt])
+  @@map("inventory_movements")
+}
+
+model TransferOrder {
+  id               String         @id @default(cuid())
+  tenantId         String
+  fromLocationId   String
+  toLocationId     String
+  status           TransferStatus @default(DRAFT)
+  totalValue       Float          @default(0)
+  requiresApproval Boolean        @default(false)
+  notes            String?
+  createdBy        String?
+  approvedBy       String?
+  approvedAt       DateTime?
+  rejectionReason  String?
+  carrier          String?
+  trackingNumber   String?
+  shippedAt        DateTime?
+  receivedAt       DateTime?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  items            TransferItem[]
+  fromLocation     Location       @relation("transferFrom", fields: [fromLocationId], references: [id])
+  tenant           Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  toLocation       Location       @relation("transferTo", fields: [toLocationId], references: [id])
+
+  @@index([tenantId])
+  @@index([fromLocationId])
+  @@index([toLocationId])
+  @@map("transfer_orders")
+}
+
+model TransferItem {
+  id               String        @id @default(cuid())
+  transferOrderId  String
+  productId        String
+  quantity         Int
+  quantityShipped  Int           @default(0)
+  receivedQuantity Int           @default(0)
+  transferOrder    TransferOrder @relation(fields: [transferOrderId], references: [id], onDelete: Cascade)
+
+  @@index([transferOrderId])
+  @@map("transfer_items")
+}
+
+model Supplier {
+  id             String            @id @default(cuid())
+  tenantId       String
+  name           String
+  email          String?
+  phone          String?
+  address        String?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  purchaseOrders PurchaseOrder[]
+  products       SupplierProduct[]
+  returns        SupplierReturn[]
+  tenant         Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, email])
+  @@index([tenantId])
+  @@map("suppliers")
+}
+
+model SupplierProduct {
+  id           String   @id @default(cuid())
+  supplierId   String
+  productId    String
+  supplierSku  String
+  price        Float
+  leadTimeDays Int?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  product      Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  supplier     Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+
+  @@unique([supplierId, productId])
+  @@index([supplierId])
+  @@index([productId])
+  @@map("supplier_products")
+}
+
+model PurchaseOrder {
+  id                   String              @id @default(cuid())
+  tenantId             String
+  supplierId           String
+  status               PurchaseOrderStatus @default(DRAFT)
+  expectedDeliveryDate DateTime?
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+  items                PurchaseOrderItem[]
+  supplier             Supplier            @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  tenant               Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([supplierId])
+  @@map("purchase_orders")
+}
+
+model PurchaseOrderItem {
+  id               String        @id @default(cuid())
+  purchaseOrderId  String
+  productId        String
+  quantity         Int
+  unitPrice        Float
+  receivedQuantity Int           @default(0)
+  purchaseOrder    PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+
+  @@index([purchaseOrderId])
+  @@map("purchase_order_items")
+}
+
+model SupplierReturn {
+  id                   String               @id @default(cuid())
+  tenantId             String
+  supplierId           String
+  locationId           String
+  status               SupplierReturnStatus @default(DRAFT)
+  reason               String
+  notes                String?
+  totalValue           Float                @default(0)
+  totalItems           Int                  @default(0)
+  shippedItems         Int                  @default(0)
+  carrier              String?
+  trackingNumber       String?
+  shippedAt            DateTime?
+  receivedBySupplierAt DateTime?
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
+  items                SupplierReturnItem[]
+  location             Location             @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  supplier             Supplier             @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  tenant               Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([supplierId])
+  @@index([status])
+  @@map("supplier_returns")
+}
+
+model SupplierReturnItem {
+  id               String         @id @default(cuid())
+  supplierReturnId String
+  productId        String
+  quantity         Int
+  unitPrice        Float
+  shippedQuantity  Int            @default(0)
+  reason           String?
+  product          Product        @relation(fields: [productId], references: [id], onDelete: Cascade)
+  supplierReturn   SupplierReturn @relation(fields: [supplierReturnId], references: [id], onDelete: Cascade)
+
+  @@index([supplierReturnId])
+  @@index([productId])
+  @@map("supplier_return_items")
+}
+
+model ReorderPoint {
+  id          String   @id @default(cuid())
+  tenantId    String
+  productId   String
+  locationId  String
+  minQuantity Int
+  maxQuantity Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, locationId])
+  @@index([tenantId])
+  @@map("reorder_points")
+}
+
+model DemandHistory {
+  id             String   @id @default(cuid())
+  tenantId       String
+  productId      String
+  demandQuantity Int
+  date           DateTime
+  createdAt      DateTime @default(now())
+  product        Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  tenant         Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([productId])
+  @@index([date])
+  @@map("demand_history")
+}
+
+model DeadStockRule {
+  id            String   @id @default(cuid())
+  tenantId      String
+  name          String
+  daysThreshold Int
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@map("dead_stock_rules")
+}
+
+model PriceHistory {
+  id        String   @id @default(cuid())
+  tenantId  String
+  productId String
+  oldPrice  Float
+  newPrice  Float
+  reason    String?
+  changedAt DateTime @default(now())
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([productId])
+  @@map("price_history")
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  tenantId  String
+  userId    String?
+  type      String
+  message   String
+  metadata  Json?
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([userId])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  tenantId   String
+  userId     String?
+  action     String
+  resource   String
+  resourceId String
+  changes    String?
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+  tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user       User?    @relation(fields: [userId], references: [id])
+
+  @@index([tenantId])
+  @@index([userId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+model SystemSetting {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  value       String
+  description String?
+  updatedAt   DateTime @updatedAt
+  createdAt   DateTime @default(now())
+
+  @@map("system_settings")
 }
 
 enum UserRole {
@@ -48,415 +497,11 @@ enum PurchaseOrderStatus {
   CANCELLED
 }
 
-model Tenant {
-  id            String   @id @default(cuid())
-  name          String
-  isActive      Boolean  @default(true)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  users                  User[]
-  locations              Location[]
-  products               Product[]
-  suppliers              Supplier[]
-  inventory              Inventory[]
-  inventoryMovements    InventoryMovement[]
-  transferOrders        TransferOrder[]
-  purchaseOrders        PurchaseOrder[]
-  reorderPoints         ReorderPoint[]
-  demandHistory         DemandHistory[]
-  deadStockRules        DeadStockRule[]
-  priceHistory          PriceHistory[]
-  notifications         Notification[]
-  auditLogs             AuditLog[]
-
-  @@map("tenants")
-}
-
-model User {
-  id              String   @id @default(cuid())
-  tenantId        String
-  email           String
-  passwordHash    String
-  firstName       String?
-  lastName        String?
-  role            UserRole @default(STORE_ASSOCIATE)
-  isActive        Boolean  @default(true)
-  lastLoginAt     DateTime?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  apiKeys         ApiKey[]
-  auditLogs       AuditLog[]
-
-  @@unique([tenantId, email])
-  @@index([tenantId])
-  @@map("users")
-}
-
-model ApiKey {
-  id              String   @id @default(cuid())
-  userId          String
-  name            String
-  keyHash         String   @unique
-  isActive        Boolean  @default(true)
-  lastUsedAt      DateTime?
-  expiresAt       DateTime?
-  createdAt       DateTime @default(now())
-
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@map("api_keys")
-}
-
-model Location {
-  id              String   @id @default(cuid())
-  tenantId        String
-  name            String
-  type            String   // warehouse, store, etc.
-  address         String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  binLocations    BinLocation[]
-  inventory       Inventory[]
-  transferOrdersFrom  TransferOrder[] @relation("transferFrom")
-  transferOrdersTo    TransferOrder[] @relation("transferTo")
-
-  @@unique([tenantId, name])
-  @@index([tenantId])
-  @@map("locations")
-}
-
-model BinLocation {
-  id              String   @id @default(cuid())
-  locationId      String
-  binCode         String
-  capacity        Int
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  location        Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
-
-  @@unique([locationId, binCode])
-  @@index([locationId])
-  @@map("bin_locations")
-}
-
-model Product {
-  id              String   @id @default(cuid())
-  tenantId        String
-  sku             String
-  name            String
-  description     String?
-  baseCost        Float
-  retailPrice     Float
-  weight          Float?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  images          ProductImage[]
-  variants        ProductVariant[]
-  inventory       Inventory[]
-  supplierProducts SupplierProduct[]
-  demandHistory   DemandHistory[]
-  priceHistory    PriceHistory[]
-
-  @@unique([tenantId, sku])
-  @@index([tenantId])
-  @@map("products")
-}
-
-model ProductImage {
-  id              String   @id @default(cuid())
-  productId       String
-  url             String
-  isPrimary       Boolean  @default(false)
-  createdAt       DateTime @default(now())
-
-  product         Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-
-  @@index([productId])
-  @@map("product_images")
-}
-
-model ProductVariant {
-  id              String   @id @default(cuid())
-  productId       String
-  name            String
-  sku             String
-  value           String
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  product         Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-
-  @@unique([productId, sku])
-  @@index([productId])
-  @@map("product_variants")
-}
-
-model Inventory {
-  id              String   @id @default(cuid())
-  tenantId        String
-  productId       String
-  locationId      String
-  quantity        Int      @default(0)
-  reservedQuantity Int    @default(0)
-  inTransit       Int      @default(0)
-  daysInInventory Int?
-  lastMovedAt     DateTime?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  product         Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  location        Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
-  movements       InventoryMovement[]
-
-  @@unique([productId, locationId])
-  @@index([tenantId])
-  @@index([productId])
-  @@index([locationId])
-  @@map("inventory")
-}
-
-model InventoryMovement {
-  id              String   @id @default(cuid())
-  tenantId        String
-  inventoryId     String
-  type            InventoryMovementType
-  quantity        Int
-  referenceId     String?  // transferId, purchaseOrderId, etc.
-  notes           String?
-  createdAt       DateTime @default(now())
-
-  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  inventory       Inventory @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
-
-  @@index([tenantId])
-  @@index([inventoryId])
-  @@index([createdAt])
-  @@map("inventory_movements")
-}
-
-model TransferOrder {
-  id              String   @id @default(cuid())
-  tenantId        String
-  fromLocationId  String
-  toLocationId    String
-  status          TransferStatus @default(DRAFT)
-  totalValue      Float    @default(0)
-  requiresApproval Boolean @default(false)
-  notes           String?
-  createdBy       String?
-  approvedBy      String?
-  approvedAt      DateTime?
-  rejectionReason String?
-  carrier         String?
-  trackingNumber  String?
-  shippedAt       DateTime?
-  receivedAt      DateTime?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  fromLocation    Location @relation("transferFrom", fields: [fromLocationId], references: [id])
-  toLocation      Location @relation("transferTo", fields: [toLocationId], references: [id])
-  items           TransferItem[]
-
-  @@index([tenantId])
-  @@index([fromLocationId])
-  @@index([toLocationId])
-  @@map("transfer_orders")
-}
-
-model TransferItem {
-  id              String   @id @default(cuid())
-  transferOrderId String
-  productId       String
-  quantity        Int
-  quantityShipped Int @default(0)
-  receivedQuantity Int @default(0)
-
-  transferOrder   TransferOrder @relation(fields: [transferOrderId], references: [id], onDelete: Cascade)
-
-  @@index([transferOrderId])
-  @@map("transfer_items")
-}
-
-model Supplier {
-  id              String   @id @default(cuid())
-  tenantId        String
-  name            String
-  email           String?
-  phone           String?
-  address         String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  products        SupplierProduct[]
-  purchaseOrders  PurchaseOrder[]
-
-  @@unique([tenantId, email])
-  @@index([tenantId])
-  @@map("suppliers")
-}
-
-model SupplierProduct {
-  id              String   @id @default(cuid())
-  supplierId      String
-  productId       String
-  supplierSku     String
-  price           Float
-  leadTimeDays    Int?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  supplier        Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
-  product         Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-
-  @@unique([supplierId, productId])
-  @@index([supplierId])
-  @@index([productId])
-  @@map("supplier_products")
-}
-
-model PurchaseOrder {
-  id              String   @id @default(cuid())
-  tenantId        String
-  supplierId      String
-  status          PurchaseOrderStatus @default(DRAFT)
-  expectedDeliveryDate DateTime?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  supplier        Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
-  items           PurchaseOrderItem[]
-
-  @@index([tenantId])
-  @@index([supplierId])
-  @@map("purchase_orders")
-}
-
-model PurchaseOrderItem {
-  id              String   @id @default(cuid())
-  purchaseOrderId String
-  productId       String
-  quantity        Int
-  unitPrice       Float
-  receivedQuantity Int @default(0)
-
-  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
-
-  @@index([purchaseOrderId])
-  @@map("purchase_order_items")
-}
-
-model ReorderPoint {
-  id              String   @id @default(cuid())
-  tenantId        String
-  productId       String
-  locationId      String
-  minQuantity     Int
-  maxQuantity     Int
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  @@unique([productId, locationId])
-  @@index([tenantId])
-  @@map("reorder_points")
-}
-
-model DemandHistory {
-  id              String   @id @default(cuid())
-  tenantId        String
-  productId       String
-  demandQuantity  Int
-  date            DateTime
-  createdAt       DateTime @default(now())
-
-  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  product         Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-
-  @@index([tenantId])
-  @@index([productId])
-  @@index([date])
-  @@map("demand_history")
-}
-
-model DeadStockRule {
-  id              String   @id @default(cuid())
-  tenantId        String
-  name            String
-  daysThreshold   Int
-  isActive        Boolean  @default(true)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  @@index([tenantId])
-  @@map("dead_stock_rules")
-}
-
-model PriceHistory {
-  id              String   @id @default(cuid())
-  tenantId        String
-  productId       String
-  oldPrice        Float
-  newPrice        Float
-  reason          String?
-  changedAt       DateTime @default(now())
-
-  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  product         Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-
-  @@index([tenantId])
-  @@index([productId])
-  @@map("price_history")
-}
-
-model Notification {
-  id              String   @id @default(cuid())
-  tenantId        String
-  type            String
-  message         String
-  metadata        Json?
-  isRead          Boolean  @default(false)
-  createdAt       DateTime @default(now())
-
-  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  @@index([tenantId])
-  @@index([createdAt])
-  @@map("notifications")
-}
-
-model AuditLog {
-  id              String   @id @default(cuid())
-  tenantId        String
-  userId          String?
-  action          String
-  resource        String
-  resourceId      String
-  changes         String?
-  ipAddress       String?
-  createdAt       DateTime @default(now())
-
-  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  user            User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
-
-  @@index([tenantId])
-  @@index([userId])
-  @@index([createdAt])
-  @@map("audit_logs")
+enum SupplierReturnStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  SHIPPED
+  RECEIVED_BY_SUPPLIER
+  CANCELLED
 }

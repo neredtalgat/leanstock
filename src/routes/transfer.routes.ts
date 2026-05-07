@@ -1,10 +1,16 @@
 import { Router } from 'express';
 import * as transferController from '../controllers/transfer.controller';
-import { validate } from '../middleware/validate';
+import { validate, validateParams } from '../middleware/validate';
 import { authenticate } from '../middleware/auth';
 import { injectTenant } from '../middleware/tenant';
 import { requirePermission } from '../middleware/rbac';
-import { CreateTransferInput } from '../schemas/transfer.schema';
+import {
+  CreateTransferInput,
+  ApproveTransferInput,
+  ShipTransferInput,
+  ReceiveTransferInput,
+  TransferIdParamSchema,
+} from '../schemas/transfer.schema';
 
 const router = Router();
 
@@ -30,6 +36,36 @@ router.post(
   requirePermission('orders:create'),
   validate(CreateTransferInput),
   transferController.createTransfer,
+);
+
+router.post(
+  '/:id/approve',
+  authenticate,
+  injectTenant,
+  requirePermission('orders:approve'),
+  validateParams(TransferIdParamSchema),
+  validate(ApproveTransferInput),
+  transferController.approveTransfer,
+);
+
+router.post(
+  '/:id/ship',
+  authenticate,
+  injectTenant,
+  requirePermission('orders:update'),
+  validateParams(TransferIdParamSchema),
+  validate(ShipTransferInput),
+  transferController.shipTransfer,
+);
+
+router.post(
+  '/:id/receive',
+  authenticate,
+  injectTenant,
+  requirePermission('orders:update'),
+  validateParams(TransferIdParamSchema),
+  validate(ReceiveTransferInput),
+  transferController.receiveTransfer,
 );
 
 export default router;

@@ -7,23 +7,7 @@ import { RegisterInput, LoginInput, RefreshInput } from '../schemas/auth.schema'
 export const register = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const data = req.body as RegisterInput;
-    let tenantId = data.tenantId;
-
-    // If no tenant provided, ensure user is super admin or deny
-    if (!tenantId) {
-      if (!req.user || req.user.role !== 'SUPER_ADMIN') {
-        res.status(403).json({
-          code: 'FORBIDDEN',
-          message: 'Only super admin can register users without tenant',
-          timestamp: new Date().toISOString(),
-        });
-        return;
-      }
-    } else {
-      tenantId = data.tenantId;
-    }
-
-    const user = await authService.register(data, tenantId!);
+    const user = await authService.register(data, data.tenantId);
 
     res.status(201).json({
       id: user.id,
@@ -40,6 +24,15 @@ export const register = async (req: AuthenticatedRequest, res: Response): Promis
       res.status(409).json({
         code: 'EMAIL_EXISTS',
         message: 'Email already registered in this tenant',
+        timestamp: new Date().toISOString(),
+      });
+      return;
+    }
+
+    if (error.message === 'TENANT_NOT_FOUND') {
+      res.status(404).json({
+        code: 'TENANT_NOT_FOUND',
+        message: 'Tenant not found',
         timestamp: new Date().toISOString(),
       });
       return;
