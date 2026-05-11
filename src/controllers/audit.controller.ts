@@ -17,7 +17,7 @@ export const listAuditLogs = async (req: AuthenticatedRequest, res: Response): P
 
     res.status(200).json(logs);
   } catch (error) {
-    logger.error('List audit logs error:', error);
+    logger.error({ err: error }, 'List audit logs error');
     res.status(500).json({ code: 'INTERNAL_ERROR', message: 'Internal server error' });
   }
 };

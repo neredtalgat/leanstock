@@ -57,7 +57,7 @@ export const listTransfers = async (req: AuthenticatedRequest, res: Response): P
     const transfers = await transferService.list(tenantId, status);
     res.status(200).json(transfers);
   } catch (error) {
-    logger.error('List transfers error:', error);
+    logger.error({ err: error }, 'List transfers error');
     res.status(500).json({ code: 'INTERNAL_ERROR', message: 'Internal server error' });
   }
 };

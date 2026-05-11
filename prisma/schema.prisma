@@ -34,23 +34,30 @@ model Tenant {
 }
 
 model User {
-  id           String     @id @default(cuid())
-  tenantId     String
-  email        String
-  passwordHash String
-  firstName    String?
-  lastName     String?
-  role         UserRole   @default(STORE_ASSOCIATE)
-  isActive     Boolean    @default(true)
-  lastLoginAt  DateTime?
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
-  apiKeys      ApiKey[]
-  auditLogs    AuditLog[]
-  tenant       Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  id                       String     @id @default(cuid())
+  tenantId                 String
+  email                    String
+  passwordHash             String
+  firstName                String?
+  lastName                 String?
+  role                     UserRole   @default(STORE_ASSOCIATE)
+  isActive                 Boolean    @default(true)
+  emailVerified            Boolean    @default(false)
+  emailVerificationToken   String?    @unique
+  emailVerificationExpires DateTime?
+  passwordResetToken       String?    @unique
+  passwordResetExpires     DateTime?
+  lastLoginAt              DateTime?
+  createdAt                DateTime   @default(now())
+  updatedAt                DateTime   @updatedAt
+  apiKeys                  ApiKey[]
+  auditLogs                AuditLog[]
+  tenant                   Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@unique([tenantId, email])
   @@index([tenantId])
+  @@index([emailVerificationToken])
+  @@index([passwordResetToken])
   @@map("users")
 }
 
@@ -224,6 +231,9 @@ model TransferOrder {
   @@index([tenantId])
   @@index([fromLocationId])
   @@index([toLocationId])
+  @@index([createdBy])
+  @@index([approvedBy])
+  @@index([status])
   @@map("transfer_orders")
 }
 

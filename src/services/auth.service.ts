@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
-import { tenantDb, asyncLocalStorage } from '../config/database';
+import { db, tenantDb, asyncLocalStorage } from '../config/database';
 import { redis } from '../config/redis';
 import { env } from '../config/env';
 import { logger } from '../config/logger';
@@ -49,7 +49,7 @@ export class AuthService {
         });
       });
     } catch (error) {
-      logger.error('Registration error:', error);
+      logger.error({ err: error }, 'Registration error');
       throw error;
     }
   }
@@ -57,14 +57,14 @@ export class AuthService {
   async login(data: LoginInput): Promise<TokenPair> {
     try {
       // Find user by email and tenant
-      const user = await tenantDb.user.findUnique({
+      console.log('Login attempt:', { email: data.email, tenantId: data.tenantId });
+      const user = await db.user.findFirst({
         where: {
-          tenantId_email: {
-            tenantId: data.tenantId,
-            email: data.email,
-          },
+          tenantId: data.tenantId,
+          email: data.email,
         },
       });
+      console.log('User found:', user ? { id: user.id, email: user.email, isActive: user.isActive } : null);
 
       if (!user || !user.isActive) {
         throw new Error('INVALID_CREDENTIALS');
@@ -78,7 +78,7 @@ export class AuthService {
       }
 
       // Update last login
-      await tenantDb.user.update({
+      await db.user.update({
         where: { id: user.id },
         data: { lastLoginAt: new Date() },
       });
@@ -86,11 +86,13 @@ export class AuthService {
       // Generate token pair
       return this.generateTokenPair(user, data.tenantId);
     } catch (error: any) {
-      logger.error('Login error:', error);
-      // Return INVALID_CREDENTIALS for any error (including DB errors) for security
-      if (error.message !== 'INVALID_CREDENTIALS') {
-        throw new Error('INVALID_CREDENTIALS');
+      logger.error({ err: error }, 'Login error');
+      // Propagate known auth errors, but let operational errors bubble up
+      // for proper monitoring and alerting (DB down, timeout, etc.)
+      if (error.message === 'INVALID_CREDENTIALS') {
+        throw error;
       }
+      // Re-throw original error for DB issues, network errors, etc.
       throw error;
     }
   }
@@ -108,7 +110,7 @@ export class AuthService {
         await redis.setex(`refreshtoken:blacklist:${refreshToken}`, ttl, '1');
       }
     } catch (error) {
-      logger.error('Logout error:', error);
+      logger.error({ err: error }, 'Logout error');
       throw error;
     }
   }
@@ -148,7 +150,7 @@ export class AuthService {
       // Generate new token pair
       return this.generateTokenPair(user, decoded.tenantId);
     } catch (error) {
-      logger.error('Refresh token error:', error);
+      logger.error({ err: error }, 'Refresh token error');
       throw error;
     }
   }
@@ -162,9 +164,10 @@ export class AuthService {
       type: 'access',
     };
 
-    // @ts-expect-error - jsonwebtoken type incompatibility
-    const accessToken = jwt.sign(payload, env.JWT_SECRET as string, {
-      expiresIn: env.JWT_EXPIRES_IN as string,
+    // @ts-expect-error jsonwebtoken's sign() has outdated TypeScript types that don't support JWTPayload interface
+    // The library works correctly at runtime, but types expect a string payload instead of object
+    const accessToken = jwt.sign(payload, env.JWT_SECRET, {
+      expiresIn: env.JWT_EXPIRES_IN,
     });
 
     const refreshPayload: Omit<JWTPayload, 'iat' | 'exp'> = {
@@ -172,9 +175,10 @@ export class AuthService {
       type: 'refresh',
     };
 
-    // @ts-expect-error - jsonwebtoken type incompatibility
-    const refreshToken = jwt.sign(refreshPayload, env.JWT_SECRET as string, {
-      expiresIn: env.JWT_REFRESH_EXPIRES_IN as string,
+    // @ts-expect-error jsonwebtoken's sign() has outdated TypeScript types that don't support JWTPayload interface
+    // The library works correctly at runtime, but types expect a string payload instead of object
+    const refreshToken = jwt.sign(refreshPayload, env.JWT_SECRET, {
+      expiresIn: env.JWT_REFRESH_EXPIRES_IN,
     });
 
     return {
@@ -182,6 +186,79 @@ export class AuthService {
       refreshToken,
       expiresIn: env.JWT_EXPIRES_IN,
     };
+  }
+
+  // TODO: Implement email verification
+  async verifyEmail(token: string): Promise<void> {
+    // Find user by verification token
+    const user = await tenantDb.user.findFirst({
+      where: { emailVerificationToken: token },
+    });
+    if (!user) {
+      throw new Error('INVALID_TOKEN');
+    }
+    // Update user as verified
+    await tenantDb.user.update({
+      where: { id: user.id },
+      data: { emailVerified: true, emailVerificationToken: null },
+    });
+  }
+
+  // TODO: Implement password reset request
+  async requestPasswordReset(email: string, tenantId: string): Promise<void> {
+    const user = await tenantDb.user.findUnique({
+      where: { tenantId_email: { tenantId, email } },
+    });
+    if (!user) return; // Don't reveal if email exists
+    // Generate reset token
+    const token = Math.random().toString(36).substring(2, 15);
+    await tenantDb.user.update({
+      where: { id: user.id },
+      data: { passwordResetToken: token, passwordResetExpires: new Date(Date.now() + 3600000) },
+    });
+    // TODO: Send email with reset link
+  }
+
+  // TODO: Implement password reset
+  async resetPassword(token: string, newPassword: string, tenantId: string): Promise<void> {
+    const user = await tenantDb.user.findFirst({
+      where: {
+        passwordResetToken: token,
+        passwordResetExpires: { gt: new Date() },
+        tenantId,
+      },
+    });
+    if (!user) {
+      throw new Error('INVALID_TOKEN');
+    }
+    const passwordHash = await bcrypt.hash(newPassword, env.BCRYPT_ROUNDS);
+    await tenantDb.user.update({
+      where: { id: user.id },
+      data: {
+        passwordHash,
+        passwordResetToken: null,
+        passwordResetExpires: null,
+      },
+    });
+  }
+
+  // TODO: Implement change password
+  async changePassword(userId: string, currentPassword: string, newPassword: string): Promise<void> {
+    const user = await tenantDb.user.findUnique({
+      where: { id: userId },
+    });
+    if (!user) {
+      throw new Error('USER_NOT_FOUND');
+    }
+    const isPasswordValid = await bcrypt.compare(currentPassword, user.passwordHash);
+    if (!isPasswordValid) {
+      throw new Error('INVALID_PASSWORD');
+    }
+    const passwordHash = await bcrypt.hash(newPassword, env.BCRYPT_ROUNDS);
+    await tenantDb.user.update({
+      where: { id: userId },
+      data: { passwordHash },
+    });
   }
 }
 

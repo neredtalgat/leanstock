@@ -17,7 +17,7 @@ export const createTenant = async (req: AuthenticatedRequest, res: Response): Pr
       updatedAt: tenant.updatedAt,
     });
   } catch (error) {
-    logger.error('Create tenant error:', error);
+    logger.error({ err: error }, 'Create tenant error');
     res.status(500).json({
       code: 'INTERNAL_ERROR',
       message: 'Internal server error',

@@ -1,5 +1,8 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { Prisma } from '@prisma/client';
 import { tenantDb } from '../config/database';
 import { logger } from '../config/logger';
+import { env } from '../config/env';
 import { CreateTransferInput, ReceiveItemInput, ShipTransferInput, ApproveTransferInput } from '../schemas/transfer.schema';
 
 export interface TransferOrder {
@@ -56,11 +59,12 @@ class TransferService {
               FOR UPDATE
             `;
 
-            if (!inventory || (inventory as any[]).length === 0) {
+            const inventoryRows = inventory as Array<{ quantity: number; reservedQuantity: number }>;
+            if (!inventory || inventoryRows.length === 0) {
               throw new Error(`PRODUCT_NOT_IN_LOCATION:${item.productId}`);
             }
 
-            const inv = (inventory as any[])[0];
+            const inv = inventoryRows[0];
             const quantity = Number(inv.quantity);
             const reservedQuantity = Number(inv.reservedQuantity);
             const available = quantity - reservedQuantity;
@@ -86,8 +90,8 @@ class TransferService {
             });
           }
 
-          // 4. Determine if approval required (value > 1000)
-          const requiresApproval = totalValue > 1000;
+          // 4. Determine if approval required (value > threshold)
+          const requiresApproval = totalValue > env.TRANSFER_APPROVAL_THRESHOLD;
           const status = requiresApproval ? 'PENDING_APPROVAL' : 'DRAFT';
 
           // 5. Create TransferOrder
@@ -253,7 +257,7 @@ class TransferService {
       let allReceived = true;
 
       for (const receivedItem of items) {
-        const transferItem = transfer.items.find((ti: any) => ti.productId === receivedItem.productId);
+        const transferItem = transfer.items.find((ti) => ti.productId === receivedItem.productId);
         if (!transferItem) {
           throw new Error(`ITEM_NOT_FOUND:${receivedItem.productId}`);
         }
@@ -289,7 +293,7 @@ class TransferService {
         // Update TransferItem
         await tx.transferItem.update({
           where: { id: transferItem.id },
-          data: { quantityReceived: receivedItem.quantityReceived },
+          data: { receivedQuantity: receivedItem.quantityReceived },
         });
 
         if (receivedItem.quantityReceived < transferItem.quantity) {

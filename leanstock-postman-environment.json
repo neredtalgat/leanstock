@@ -1,12 +1,57 @@
 {
-  "name": "LeanStock Local (Current)",
+  "id": "leanstock-environment",
+  "name": "LeanStock Local Environment",
   "values": [
-    { "key": "baseUrl", "value": "http://localhost:3000", "enabled": true },
-    { "key": "tenantId", "value": "", "enabled": true },
-    { "key": "accessToken", "value": "", "enabled": true },
-    { "key": "refreshToken", "value": "", "enabled": true },
-    { "key": "superAdminAccessToken", "value": "", "enabled": true },
-    { "key": "productId", "value": "", "enabled": true },
-    { "key": "locationId", "value": "", "enabled": true }
-  ]
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "enabled": true
+    },
+    {
+      "key": "tenantId",
+      "value": "192de76d-44c8-4614-8584-cadce52e1fee",
+      "enabled": true
+    },
+    {
+      "key": "accessToken",
+      "value": "",
+      "enabled": true
+    },
+    {
+      "key": "refreshToken",
+      "value": "",
+      "enabled": true
+    },
+    {
+      "key": "userId",
+      "value": "7c0212ab-cce3-482d-8660-dc92d43030e9",
+      "enabled": true
+    },
+    {
+      "key": "locationId1",
+      "value": "6b36555a-b372-4638-b4cb-1d2fe9a1aafb",
+      "enabled": true
+    },
+    {
+      "key": "locationId2",
+      "value": "6f4a307e-f57e-48f6-bba9-4f14c13e9fba",
+      "enabled": true
+    },
+    {
+      "key": "productId1",
+      "value": "db763b83-5753-4520-92ea-8351d9f3458c",
+      "enabled": true
+    },
+    {
+      "key": "productId2",
+      "value": "36b8abec-bec1-4dbc-8787-539ccb3da82b",
+      "enabled": true
+    },
+    {
+      "key": "supplierId",
+      "value": "8809a874-aec7-4485-b33b-22e993e22ae9",
+      "enabled": true
+    }
+  ],
+  "_postman_variable_scope": "environment"
 }

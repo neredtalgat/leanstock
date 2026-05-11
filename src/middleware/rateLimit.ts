@@ -78,12 +78,12 @@ export const createRateLimit = (prefix: string, options: RateLimitOptions = {}) 
           next();
         })
         .catch((error) => {
-          logger.error('Rate limit error:', error);
+          logger.error({ err: error }, 'Rate limit error');
           // Allow request on error
           next();
         });
     } catch (error) {
-      logger.error('Rate limit middleware error:', error);
+      logger.error({ err: error }, 'Rate limit middleware error');
       next();
     }
   };

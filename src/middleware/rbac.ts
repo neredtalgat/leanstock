@@ -153,7 +153,7 @@ export const requirePermission = (permission: string) => {
 
       next();
     } catch (error) {
-      logger.error('Permission check error:', error);
+      logger.error({ err: error }, 'Permission check error');
       res.status(500).json({
         code: 'INTERNAL_ERROR',
         message: 'Internal server error',
@@ -190,7 +190,7 @@ export const requireRole = (minRole: UserRole) => {
 
       next();
     } catch (error) {
-      logger.error('Role check error:', error);
+      logger.error({ err: error }, 'Role check error');
       res.status(500).json({
         code: 'INTERNAL_ERROR',
         message: 'Internal server error',

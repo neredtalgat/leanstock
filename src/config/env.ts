@@ -38,6 +38,9 @@ const envSchema = z.object({
 
   // Logging
   LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('debug'),
+
+  // Business Logic Settings
+  TRANSFER_APPROVAL_THRESHOLD: z.coerce.number().positive().default(1000),
 });
 
 type Environment = z.infer<typeof envSchema>;

@@ -16,7 +16,7 @@ export const listReorderPoints = async (req: AuthenticatedRequest, res: Response
 
     res.status(200).json(result);
   } catch (error) {
-    logger.error('List reorder points error:', error);
+    logger.error({ err: error }, 'List reorder points error');
     res.status(500).json({ code: 'INTERNAL_ERROR', message: 'Internal server error' });
   }
 };
@@ -34,7 +34,7 @@ export const getReorderPoint = async (req: AuthenticatedRequest, res: Response):
 
     res.status(200).json(rp);
   } catch (error) {
-    logger.error('Get reorder point error:', error);
+    logger.error({ err: error }, 'Get reorder point error');
     res.status(500).json({ code: 'INTERNAL_ERROR', message: 'Internal server error' });
   }
 };
@@ -65,7 +65,7 @@ export const createReorderPoint = async (req: AuthenticatedRequest, res: Respons
       res.status(409).json({ code: 'REORDER_POINT_EXISTS', message: 'Reorder point already exists for this product and location' });
       return;
     }
-    logger.error('Create reorder point error:', error);
+    logger.error({ err: error }, 'Create reorder point error');
     res.status(500).json({ code: 'INTERNAL_ERROR', message: 'Internal server error' });
   }
 };
@@ -84,7 +84,7 @@ export const updateReorderPoint = async (req: AuthenticatedRequest, res: Respons
       res.status(404).json({ code: 'NOT_FOUND', message: 'Reorder point not found' });
       return;
     }
-    logger.error('Update reorder point error:', error);
+    logger.error({ err: error }, 'Update reorder point error');
     res.status(500).json({ code: 'INTERNAL_ERROR', message: 'Internal server error' });
   }
 };
@@ -102,7 +102,7 @@ export const deleteReorderPoint = async (req: AuthenticatedRequest, res: Respons
       res.status(404).json({ code: 'NOT_FOUND', message: 'Reorder point not found' });
       return;
     }
-    logger.error('Delete reorder point error:', error);
+    logger.error({ err: error }, 'Delete reorder point error');
     res.status(500).json({ code: 'INTERNAL_ERROR', message: 'Internal server error' });
   }
 };

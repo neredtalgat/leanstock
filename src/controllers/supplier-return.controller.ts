@@ -16,7 +16,7 @@ export const listReturns = async (
       data: returns,
     });
   } catch (error) {
-    logger.error('List supplier returns error:', error);
+    logger.error({ err: error }, 'List supplier returns error');
     res.status(500).json({
       code: 'INTERNAL_ERROR',
       message: 'Failed to list supplier returns',
@@ -46,7 +46,7 @@ export const getReturn = async (
       data: ret,
     });
   } catch (error) {
-    logger.error('Get supplier return error:', error);
+    logger.error({ err: error }, 'Get supplier return error');
     res.status(500).json({
       code: 'INTERNAL_ERROR',
       message: 'Failed to get supplier return',
@@ -68,7 +68,7 @@ export const createReturn = async (
       data: ret,
     });
   } catch (error: any) {
-    logger.error('Create supplier return error:', error);
+    logger.error({ err: error }, 'Create supplier return error');
     if (error.message === 'SUPPLIER_NOT_FOUND') {
       res.status(400).json({
         code: 'SUPPLIER_NOT_FOUND',
@@ -123,7 +123,7 @@ export const updateReturn = async (
       data: ret,
     });
   } catch (error: any) {
-    logger.error('Update supplier return error:', error);
+    logger.error({ err: error }, 'Update supplier return error');
     if (error.message === 'RETURN_NOT_FOUND') {
       res.status(404).json({
         code: 'NOT_FOUND',
@@ -162,7 +162,7 @@ export const shipReturn = async (
       data: ret,
     });
   } catch (error: any) {
-    logger.error('Ship supplier return error:', error);
+    logger.error({ err: error }, 'Ship supplier return error');
     if (error.message === 'RETURN_NOT_FOUND') {
       res.status(404).json({
         code: 'NOT_FOUND',
@@ -201,7 +201,7 @@ export const markReceived = async (
       data: ret,
     });
   } catch (error: any) {
-    logger.error('Mark supplier return received error:', error);
+    logger.error({ err: error }, 'Mark supplier return received error');
     if (error.message === 'RETURN_NOT_FOUND') {
       res.status(404).json({
         code: 'NOT_FOUND',
@@ -241,7 +241,7 @@ export const cancelReturn = async (
       data: ret,
     });
   } catch (error: any) {
-    logger.error('Cancel supplier return error:', error);
+    logger.error({ err: error }, 'Cancel supplier return error');
     if (error.message === 'RETURN_NOT_FOUND') {
       res.status(404).json({
         code: 'NOT_FOUND',

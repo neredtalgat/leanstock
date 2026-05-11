@@ -19,15 +19,17 @@ export function getPrisma(): PrismaClient {
 
     // Log queries in development
     if (process.env.NODE_ENV === 'development') {
-      // @ts-expect-error - Prisma event types
-      prismaInstance.$on('query', (e: any) => {
+      // Prisma's $on method has incomplete type definitions for event payloads
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      prismaInstance.$on('query' as never, (e: { query: string; duration: number }) => {
         logger.debug(`Query: ${e.query}`);
         logger.debug(`Duration: ${e.duration}ms`);
       });
     }
 
-    // @ts-expect-error - Prisma event types
-    prismaInstance.$on('error', (e: any) => {
+    // Prisma's $on method typing doesn't include the 'error' event payload type
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    prismaInstance.$on('error' as never, (e: { message: string }) => {
       logger.error(`Database error: ${e.message}`);
     });
 

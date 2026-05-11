@@ -18,7 +18,7 @@ export function getRedis(): Redis {
     });
 
     redisInstance.on('error', (err) => {
-      logger.error('Redis error:', err);
+      logger.error({ err }, 'Redis error');
     });
 
     redisInstance.on('connect', () => {
@@ -40,8 +40,11 @@ export function getRedis(): Redis {
 
 export const redis = getRedis();
 
+// Store script SHA for later use
+let rateLimitScriptSha: string | null = null;
+
 // Token bucket rate limiter script
-export const rateLimitScript = `
+const rateLimitScript = `
 local key = KEYS[1]
 local limit = tonumber(ARGV[1])
 local window = tonumber(ARGV[2])
@@ -66,9 +69,36 @@ end
 export async function loadScripts(): Promise<void> {
   try {
     const sha = await redis.script('LOAD', rateLimitScript);
+    rateLimitScriptSha = sha as string;
     logger.info(`Rate limit Lua script loaded: ${sha}`);
   } catch (error) {
-    logger.error('Failed to load Lua scripts:', error);
+    logger.error({ err: error }, 'Failed to load Lua scripts');
     throw error;
   }
+}
+
+/**
+ * Execute rate limit check using loaded Lua script
+ * Returns: number of requests made (0 if limit exceeded)
+ */
+export async function checkRateLimit(
+  key: string,
+  limit: number,
+  windowMs: number
+): Promise<number> {
+  if (!rateLimitScriptSha) {
+    throw new Error('Rate limit script not loaded. Call loadScripts() first.');
+  }
+  
+  const now = Date.now();
+  const result = await redis.evalsha(
+    rateLimitScriptSha,
+    1,           // number of keys
+    key,         // KEYS[1]
+    limit,       // ARGV[1]
+    windowMs,    // ARGV[2]
+    now          // ARGV[3]
+  );
+  
+  return result as number;
 }

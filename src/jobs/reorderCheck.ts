@@ -1,4 +1,5 @@
 import { Queue, Worker, Job } from 'bullmq';
+import { Inventory, Prisma, Product, ReorderPoint } from '@prisma/client';
 import { redis } from '../config/redis';
 import { logger } from '../config/logger';
 import { db } from '../config/database';
@@ -52,6 +53,14 @@ worker.on('failed', (job, err) => {
 });
 
 /**
+ * Close worker gracefully
+ */
+export async function closeReorderWorker(): Promise<void> {
+  await worker.close();
+  await reorderQueue.close();
+}
+
+/**
  * Check all tenants for reorder points
  */
 async function checkAllTenants(): Promise<void> {
@@ -89,8 +98,8 @@ async function checkTenant(tenantId: string): Promise<void> {
     });
 
     // Create map for quick lookup
-    const reorderPointMap = new Map<string, any>(
-      reorderPoints.map((rp: any) => [`${rp.productId}_${rp.locationId}`, rp]),
+    const reorderPointMap = new Map<string, ReorderPoint>(
+      reorderPoints.map((rp) => [`${rp.productId}_${rp.locationId}`, rp]),
     );
 
     for (const item of inventoryItems) {

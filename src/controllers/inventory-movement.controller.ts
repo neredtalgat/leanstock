@@ -21,7 +21,7 @@ export const listMovements = async (req: AuthenticatedRequest, res: Response): P
 
     res.status(200).json(result);
   } catch (error) {
-    logger.error('List inventory movements error:', error);
+    logger.error({ err: error }, 'List inventory movements error');
     res.status(500).json({ code: 'INTERNAL_ERROR', message: 'Internal server error' });
   }
 };
@@ -39,7 +39,7 @@ export const getMovement = async (req: AuthenticatedRequest, res: Response): Pro
 
     res.status(200).json(movement);
   } catch (error) {
-    logger.error('Get inventory movement error:', error);
+    logger.error({ err: error }, 'Get inventory movement error');
     res.status(500).json({ code: 'INTERNAL_ERROR', message: 'Internal server error' });
   }
 };

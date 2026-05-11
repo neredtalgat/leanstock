@@ -11,7 +11,7 @@ export const listPurchaseOrders = async (req: AuthenticatedRequest, res: Respons
     const orders = await purchaseOrderService.list(tenantId, status as string);
     res.status(200).json(orders);
   } catch (error) {
-    logger.error('List purchase orders error:', error);
+    logger.error({ err: error }, 'List purchase orders error');
     res.status(500).json({ code: 'INTERNAL_ERROR', message: 'Internal server error' });
   }
 };
@@ -30,7 +30,7 @@ export const createPurchaseOrder = async (req: AuthenticatedRequest, res: Respon
 
     res.status(201).json(order);
   } catch (error: any) {
-    logger.error('Create purchase order error:', error);
+    logger.error({ err: error }, 'Create purchase order error');
 
     if (error.message === 'SUPPLIER_NOT_FOUND') {
       res.status(404).json({ code: 'SUPPLIER_NOT_FOUND', message: 'Supplier not found' });
@@ -59,7 +59,7 @@ export const updatePurchaseOrder = async (req: AuthenticatedRequest, res: Respon
 
     res.status(200).json(order);
   } catch (error: any) {
-    logger.error('Update purchase order error:', error);
+    logger.error({ err: error }, 'Update purchase order error');
 
     if (error.message === 'ORDER_NOT_FOUND') {
       res.status(404).json({ code: 'ORDER_NOT_FOUND', message: 'Purchase order not found' });
@@ -85,7 +85,7 @@ export const receivePurchaseOrder = async (req: AuthenticatedRequest, res: Respo
 
     res.status(200).json(order);
   } catch (error: any) {
-    logger.error('Receive purchase order error:', error);
+    logger.error({ err: error }, 'Receive purchase order error');
 
     if (error.message === 'ORDER_NOT_FOUND') {
       res.status(404).json({ code: 'ORDER_NOT_FOUND', message: 'Purchase order not found' });

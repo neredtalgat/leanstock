@@ -1,4 +1,4 @@
-import { Response } from 'express';
+import { Response, NextFunction, Request } from 'express';
 import { logger } from '../config/logger';
 import { AuthenticatedRequest, ErrorResponse } from '../types';
 
@@ -16,8 +16,9 @@ export class AppError extends Error {
 
 export const errorHandler = (
   error: Error | AppError,
-  req: AuthenticatedRequest,
+  req: Request,
   res: Response,
+  _next: NextFunction,
 ): void => {
   const timestamp = new Date().toISOString();
 
@@ -39,7 +40,7 @@ export const errorHandler = (
   }
 
   // Unhandled error
-  logger.error('Unhandled error:', error);
+  logger.error({ err: error }, 'Unhandled error');
 
   res.status(500).json({
     code: 'INTERNAL_SERVER_ERROR',
@@ -48,7 +49,7 @@ export const errorHandler = (
   });
 };
 
-export const notFoundHandler = (req: AuthenticatedRequest, res: Response): void => {
+export const notFoundHandler = (req: Request, res: Response): void => {
   res.status(404).json({
     code: 'NOT_FOUND',
     message: `Route ${req.method} ${req.path} not found`,

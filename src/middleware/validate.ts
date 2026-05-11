@@ -28,7 +28,7 @@ export const validate = (schema: ZodSchema) => {
         return;
       }
 
-      logger.error('Validation error:', error);
+      logger.error({ err: error }, 'Validation error');
       res.status(500).json({
         code: 'INTERNAL_ERROR',
         message: 'Internal server error',
@@ -63,7 +63,7 @@ export const validateQuery = (schema: ZodSchema) => {
         return;
       }
 
-      logger.error('Validation error:', error);
+      logger.error({ err: error }, 'Validation error');
       res.status(500).json({
         code: 'INTERNAL_ERROR',
         message: 'Internal server error',
@@ -77,7 +77,7 @@ export const validateParams = (schema: ZodSchema) => {
   return (req: AuthenticatedRequest, res: Response, next: NextFunction): void => {
     try {
       const validated = schema.parse(req.params);
-      req.params = validated as any;
+      req.params = validated as Record<string, string>;
       next();
     } catch (error) {
       if (error instanceof ZodError) {
@@ -98,7 +98,7 @@ export const validateParams = (schema: ZodSchema) => {
         return;
       }
 
-      logger.error('Validation error:', error);
+      logger.error({ err: error }, 'Validation error');
       res.status(500).json({
         code: 'INTERNAL_ERROR',
         message: 'Internal server error',

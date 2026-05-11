@@ -14,7 +14,7 @@ export const getGlobalLimits = async (
       data: limits,
     });
   } catch (error) {
-    logger.error('Get global limits error:', error);
+    logger.error({ err: error }, 'Get global limits error');
     res.status(500).json({
       code: 'INTERNAL_ERROR',
       message: 'Failed to get global limits',
@@ -35,7 +35,7 @@ export const updateGlobalLimits = async (
       data: updatedLimits,
     });
   } catch (error) {
-    logger.error('Update global limits error:', error);
+    logger.error({ err: error }, 'Update global limits error');
     res.status(500).json({
       code: 'INTERNAL_ERROR',
       message: 'Failed to update global limits',
@@ -56,7 +56,7 @@ export const getTenantLimits = async (
       data: limits,
     });
   } catch (error) {
-    logger.error('Get tenant limits error:', error);
+    logger.error({ err: error }, 'Get tenant limits error');
     res.status(500).json({
       code: 'INTERNAL_ERROR',
       message: 'Failed to get tenant limits',
@@ -76,7 +76,7 @@ export const getSystemStatus = async (
       data: status,
     });
   } catch (error) {
-    logger.error('Get system status error:', error);
+    logger.error({ err: error }, 'Get system status error');
     res.status(500).json({
       code: 'INTERNAL_ERROR',
       message: 'Failed to get system status',

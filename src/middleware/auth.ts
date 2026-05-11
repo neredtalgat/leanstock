@@ -58,7 +58,7 @@ export const authenticate = (req: AuthenticatedRequest, res: Response, next: Nex
       throw error;
     }
   } catch (error) {
-    logger.error('Authentication error:', error);
+    logger.error({ err: error }, 'Authentication error');
     res.status(500).json({
       code: 'INTERNAL_ERROR',
       message: 'Internal server error',
@@ -90,7 +90,7 @@ export const optionalAuth = (req: AuthenticatedRequest, res: Response, next: Nex
 
     next();
   } catch (error) {
-    logger.error('Optional auth error:', error);
+    logger.error({ err: error }, 'Optional auth error');
     next();
   }
 };

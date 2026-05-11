@@ -14,7 +14,7 @@ export const getCrossTenantAnalytics = async (
       data: analytics,
     });
   } catch (error) {
-    logger.error('Cross-tenant analytics error:', error);
+    logger.error({ err: error }, 'Cross-tenant analytics error');
     res.status(500).json({
       code: 'INTERNAL_ERROR',
       message: 'Failed to generate cross-tenant analytics',
@@ -34,7 +34,7 @@ export const getSystemMetrics = async (
       data: metrics,
     });
   } catch (error) {
-    logger.error('System metrics error:', error);
+    logger.error({ err: error }, 'System metrics error');
     res.status(500).json({
       code: 'INTERNAL_ERROR',
       message: 'Failed to generate system metrics',
@@ -55,7 +55,7 @@ export const getTimeSeriesAnalytics = async (
       data,
     });
   } catch (error) {
-    logger.error('Time series analytics error:', error);
+    logger.error({ err: error }, 'Time series analytics error');
     res.status(500).json({
       code: 'INTERNAL_ERROR',
       message: 'Failed to generate time series analytics',
@@ -76,7 +76,7 @@ export const getTenantDetails = async (
       data: details,
     });
   } catch (error) {
-    logger.error('Tenant details error:', error);
+    logger.error({ err: error }, 'Tenant details error');
     res.status(500).json({
       code: 'INTERNAL_ERROR',
       message: 'Failed to get tenant details',

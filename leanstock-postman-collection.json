@@ -1,51 +1,75 @@
 {
   "info": {
-    "name": "LeanStock API (Complete)",
-    "description": "Complete Postman collection with all available LeanStock API endpoints",
-    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "_postman_id": "leanstock-complete-api"
+    "_postman_id": "leanstock-complete-collection",
+    "name": "LeanStock Complete API Collection",
+    "description": "Complete API collection for LeanStock inventory management system",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
-  "item": [
+  "variable": [
     {
-      "name": "Health",
-      "item": [
-        {
-          "name": "GET /health",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/health"
-          }
-        }
-      ]
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
     },
     {
-      "name": "Auth",
+      "key": "tenantId",
+      "value": "192de76d-44c8-4614-8584-cadce52e1fee",
+      "type": "string"
+    },
+    {
+      "key": "accessToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "refreshToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "userId",
+      "value": "7c0212ab-cce3-482d-8660-dc92d43030e9",
+      "type": "string"
+    },
+    {
+      "key": "locationId1",
+      "value": "6b36555a-b372-4638-b4cb-1d2fe9a1aafb",
+      "type": "string"
+    },
+    {
+      "key": "locationId2",
+      "value": "6f4a307e-f57e-48f6-bba9-4f14c13e9fba",
+      "type": "string"
+    },
+    {
+      "key": "productId1",
+      "value": "db763b83-5753-4520-92ea-8351d9f3458c",
+      "type": "string"
+    },
+    {
+      "key": "productId2",
+      "value": "36b8abec-bec1-4dbc-8787-539ccb3da82b",
+      "type": "string"
+    },
+    {
+      "key": "supplierId",
+      "value": "8809a874-aec7-4485-b33b-22e993e22ae9",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "🔐 Authentication",
       "item": [
         {
-          "name": "POST /auth/register",
+          "name": "01 - Login",
           "request": {
             "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" }
-            ],
-            "url": "{{baseUrl}}/auth/register",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"email\": \"tenant.admin@leanstock.local\",\n  \"password\": \"AdminPass123!\",\n  \"firstName\": \"Tenant\",\n  \"lastName\": \"Admin\",\n  \"role\": \"TENANT_ADMIN\",\n  \"tenantId\": \"{{tenantId}}\"\n}"
-            }
-          }
-        },
-        {
-          "name": "POST /auth/login",
-          "request": {
-            "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" }
-            ],
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
             "url": "{{baseUrl}}/auth/login",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"tenant.admin@leanstock.local\",\n  \"password\": \"AdminPass123!\",\n  \"tenantId\": \"{{tenantId}}\"\n}"
+              "raw": "{\n  \"email\": \"admin@demo.com\",\n  \"password\": \"Admin@123456\",\n  \"tenantId\": \"{{tenantId}}\"\n}"
             }
           },
           "event": [
@@ -53,21 +77,23 @@
               "listen": "test",
               "script": {
                 "exec": [
-                  "const jsonData = pm.response.json();",
-                  "if (jsonData.accessToken) pm.environment.set('accessToken', jsonData.accessToken);",
-                  "if (jsonData.refreshToken) pm.environment.set('refreshToken', jsonData.refreshToken);"
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.accessToken) {",
+                  "    pm.environment.set('accessToken', jsonData.accessToken);",
+                  "    pm.environment.set('refreshToken', jsonData.refreshToken);",
+                  "}",
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Has access token', function () { pm.expect(jsonData).to.have.property('accessToken'); });"
                 ]
               }
             }
           ]
         },
         {
-          "name": "POST /auth/refresh",
+          "name": "02 - Refresh Token",
           "request": {
             "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" }
-            ],
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
             "url": "{{baseUrl}}/auth/refresh",
             "body": {
               "mode": "raw",
@@ -76,68 +102,63 @@
           }
         },
         {
-          "name": "POST /auth/logout",
+          "name": "03 - Logout",
           "request": {
             "method": "POST",
             "header": [
               { "key": "Content-Type", "value": "application/json" },
               { "key": "Authorization", "value": "Bearer {{accessToken}}" }
             ],
-            "url": "{{baseUrl}}/auth/logout",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "Tenants (SUPER_ADMIN)",
-      "item": [
-        {
-          "name": "POST /tenants",
-          "request": {
-            "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{superAdminAccessToken}}" }
-            ],
-            "url": "{{baseUrl}}/tenants",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"New Tenant Co\"\n}"
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "const jsonData = pm.response.json();",
-                  "if (jsonData.id) pm.environment.set('tenantId', jsonData.id);"
-                ]
-              }
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "name": "Products",
-      "item": [
-        {
-          "name": "GET /products",
-          "request": {
-            "method": "GET",
-            "header": [
-              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
-            ],
-            "url": "{{baseUrl}}/products?limit=20"
+            "url": "{{baseUrl}}/auth/logout"
           }
         },
         {
-          "name": "POST /products",
+          "name": "04 - Register User",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/auth/register",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"newuser@demo.com\",\n  \"password\": \"NewUser123!\",\n  \"firstName\": \"New\",\n  \"lastName\": \"User\",\n  \"tenantId\": \"{{tenantId}}\",\n  \"role\": \"STORE_ASSOCIATE\"\n}"
+            }
+          }
+        },
+        {
+          "name": "05 - Request Password Reset",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/auth/request-password-reset",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@demo.com\",\n  \"tenantId\": \"{{tenantId}}\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "📦 Products",
+      "item": [
+        {
+          "name": "01 - List Products",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": "{{baseUrl}}/products?limit=10"
+          }
+        },
+        {
+          "name": "02 - Get Product by ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": "{{baseUrl}}/products/{{productId1}}"
+          }
+        },
+        {
+          "name": "03 - Create Product",
           "request": {
             "method": "POST",
             "header": [
@@ -147,27 +168,114 @@
             "url": "{{baseUrl}}/products",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"sku\": \"SKU-NEW-001\",\n  \"name\": \"New Product\",\n  \"description\": \"Created from Postman\",\n  \"baseCost\": 10.5,\n  \"retailPrice\": 15.9,\n  \"weight\": 0.5\n}"
+              "raw": "{\n  \"sku\": \"SKU-NEW-001\",\n  \"name\": \"New Product\",\n  \"description\": \"A new test product\",\n  \"baseCost\": 25.00,\n  \"retailPrice\": 39.99,\n  \"weight\": 1.0\n}"
+            }
+          }
+        },
+        {
+          "name": "04 - Update Product",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": "{{baseUrl}}/products/{{productId1}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Product A\",\n  \"retailPrice\": 34.99\n}"
+            }
+          }
+        },
+        {
+          "name": "05 - Delete Product",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": "{{baseUrl}}/products/{{productId2}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "📍 Locations",
+      "item": [
+        {
+          "name": "01 - List Locations",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": "{{baseUrl}}/locations"
+          }
+        },
+        {
+          "name": "02 - Get Location by ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": "{{baseUrl}}/locations/{{locationId1}}"
+          }
+        },
+        {
+          "name": "03 - Create Location",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": "{{baseUrl}}/locations",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"New Warehouse\",\n  \"type\": \"warehouse\",\n  \"address\": \"789 Industrial Blvd\"\n}"
+            }
+          }
+        },
+        {
+          "name": "04 - Update Location",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": "{{baseUrl}}/locations/{{locationId2}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"address\": \"Updated Address: 456 Main Street, Suite 100\"\n}"
             }
           }
         }
       ]
     },
     {
-      "name": "Inventory",
+      "name": "📊 Inventory",
       "item": [
         {
-          "name": "GET /inventory",
+          "name": "01 - List Inventory",
           "request": {
             "method": "GET",
-            "header": [
-              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
-            ],
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
             "url": "{{baseUrl}}/inventory"
           }
         },
         {
-          "name": "POST /inventory/adjust",
+          "name": "02 - Create Inventory Record",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": "{{baseUrl}}/inventory",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": \"{{productId1}}\",\n  \"locationId\": \"{{locationId1}}\",\n  \"quantity\": 100,\n  \"reservedQuantity\": 0\n}"
+            }
+          }
+        },
+        {
+          "name": "03 - Adjust Inventory",
           "request": {
             "method": "POST",
             "header": [
@@ -177,45 +285,174 @@
             "url": "{{baseUrl}}/inventory/adjust",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"productId\": \"{{productId}}\",\n  \"locationId\": \"{{locationId}}\",\n  \"quantity\": 5,\n  \"operation\": \"ADD\",\n  \"reason\": \"postman adjustment\"\n}"
+              "raw": "{\n  \"productId\": \"{{productId1}}\",\n  \"locationId\": \"{{locationId1}}\",\n  \"quantity\": 50,\n  \"reason\": \"Stock adjustment\",\n  \"type\": \"IN\"\n}"
+            }
+          }
+        },
+        {
+          "name": "04 - List Inventory Movements",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": "{{baseUrl}}/inventory/movements"
+          }
+        }
+      ]
+    },
+    {
+      "name": "🚚 Transfers",
+      "item": [
+        {
+          "name": "01 - List Transfers",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": "{{baseUrl}}/transfers"
+          }
+        },
+        {
+          "name": "02 - Create Transfer",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": "{{baseUrl}}/transfers",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fromLocationId\": \"{{locationId1}}\",\n  \"toLocationId\": \"{{locationId2}}\",\n  \"items\": [\n    {\n      \"productId\": \"{{productId1}}\",\n      \"quantity\": 10\n    }\n  ],\n  \"notes\": \"Transfer for restocking\"\n}"
             }
           }
         }
       ]
     },
     {
-      "name": "System / Analytics (SUPER_ADMIN)",
+      "name": "🏢 Suppliers",
       "item": [
         {
-          "name": "GET /system/status",
+          "name": "01 - List Suppliers",
           "request": {
             "method": "GET",
-            "header": [
-              { "key": "Authorization", "value": "Bearer {{superAdminAccessToken}}" }
-            ],
-            "url": "{{baseUrl}}/system/status"
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": "{{baseUrl}}/suppliers"
           }
         },
         {
-          "name": "GET /analytics/cross-tenant",
+          "name": "02 - Get Supplier by ID",
           "request": {
             "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": "{{baseUrl}}/suppliers/{{supplierId}}"
+          }
+        },
+        {
+          "name": "03 - Create Supplier",
+          "request": {
+            "method": "POST",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{superAdminAccessToken}}" }
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
             ],
-            "url": "{{baseUrl}}/analytics/cross-tenant"
+            "url": "{{baseUrl}}/suppliers",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"New Supplier Inc\",\n  \"email\": \"contact@newsupplier.com\",\n  \"phone\": \"+9876543210\",\n  \"address\": \"123 Supplier Way\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "📝 Purchase Orders",
+      "item": [
+        {
+          "name": "01 - List Purchase Orders",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": "{{baseUrl}}/purchase-orders"
+          }
+        },
+        {
+          "name": "02 - Create Purchase Order",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": "{{baseUrl}}/purchase-orders",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"supplierId\": \"{{supplierId}}\",\n  \"items\": [\n    {\n      \"productId\": \"{{productId1}}\",\n      \"quantity\": 50,\n      \"unitPrice\": 15.00\n    }\n  ],\n  \"expectedDeliveryDate\": \"2026-06-01T00:00:00Z\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "🔔 Notifications",
+      "item": [
+        {
+          "name": "01 - List Notifications",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": "{{baseUrl}}/notifications"
+          }
+        },
+        {
+          "name": "02 - Get Unread Count",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": "{{baseUrl}}/notifications/unread-count"
+          }
+        },
+        {
+          "name": "03 - Mark All as Read",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": "{{baseUrl}}/notifications/mark-all-read"
+          }
+        }
+      ]
+    },
+    {
+      "name": "📈 Reports & Audit",
+      "item": [
+        {
+          "name": "01 - Low Stock Report",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": "{{baseUrl}}/reports/low-stock"
+          }
+        },
+        {
+          "name": "02 - List Audit Logs",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": "{{baseUrl}}/audit-logs"
+          }
+        }
+      ]
+    },
+    {
+      "name": "🏥 Health",
+      "item": [
+        {
+          "name": "01 - Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/health"
           }
         }
       ]
     }
-  ],
-  "variable": [
-    { "key": "baseUrl", "value": "http://localhost:3000", "type": "string" },
-    { "key": "tenantId", "value": "", "type": "string" },
-    { "key": "accessToken", "value": "", "type": "string" },
-    { "key": "refreshToken", "value": "", "type": "string" },
-    { "key": "superAdminAccessToken", "value": "", "type": "string" },
-    { "key": "productId", "value": "", "type": "string" },
-    { "key": "locationId", "value": "", "type": "string" }
   ]
 }

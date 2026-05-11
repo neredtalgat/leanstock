@@ -18,7 +18,7 @@ export const listNotifications = async (
       data: notifications,
     });
   } catch (error) {
-    logger.error('List notifications error:', error);
+    logger.error({ err: error }, 'List notifications error');
     res.status(500).json({
       code: 'INTERNAL_ERROR',
       message: 'Failed to list notifications',
@@ -41,7 +41,7 @@ export const getUnreadCount = async (
       data: { count },
     });
   } catch (error) {
-    logger.error('Get unread count error:', error);
+    logger.error({ err: error }, 'Get unread count error');
     res.status(500).json({
       code: 'INTERNAL_ERROR',
       message: 'Failed to get unread count',
@@ -65,7 +65,7 @@ export const markAsRead = async (
       data: notification,
     });
   } catch (error: any) {
-    logger.error('Mark notification as read error:', error);
+    logger.error({ err: error }, 'Mark notification as read error');
     if (error.message === 'NOTIFICATION_NOT_FOUND') {
       res.status(404).json({
         code: 'NOT_FOUND',
@@ -104,7 +104,7 @@ export const markAllAsRead = async (
       data: { markedAsRead: count },
     });
   } catch (error) {
-    logger.error('Mark all notifications as read error:', error);
+    logger.error({ err: error }, 'Mark all notifications as read error');
     res.status(500).json({
       code: 'INTERNAL_ERROR',
       message: 'Failed to mark notifications as read',
@@ -128,7 +128,7 @@ export const deleteNotification = async (
       message: 'Notification deleted',
     });
   } catch (error: any) {
-    logger.error('Delete notification error:', error);
+    logger.error({ err: error }, 'Delete notification error');
     if (error.message === 'NOTIFICATION_NOT_FOUND') {
       res.status(404).json({
         code: 'NOT_FOUND',
@@ -166,7 +166,7 @@ export const createNotification = async (
       data: notification,
     });
   } catch (error) {
-    logger.error('Create notification error:', error);
+    logger.error({ err: error }, 'Create notification error');
     res.status(500).json({
       code: 'INTERNAL_ERROR',
       message: 'Failed to create notification',
@@ -188,7 +188,7 @@ export const cleanupNotifications = async (
       data: { deleted: count },
     });
   } catch (error) {
-    logger.error('Cleanup notifications error:', error);
+    logger.error({ err: error }, 'Cleanup notifications error');
     res.status(500).json({
       code: 'INTERNAL_ERROR',
       message: 'Failed to cleanup notifications',

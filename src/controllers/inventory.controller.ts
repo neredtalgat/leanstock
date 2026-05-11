@@ -16,7 +16,7 @@ export const listInventory = async (req: AuthenticatedRequest, res: Response): P
 
     res.status(200).json(inventory);
   } catch (error) {
-    logger.error('List inventory error:', error);
+    logger.error({ err: error }, 'List inventory error');
     res.status(500).json({ code: 'INTERNAL_ERROR', message: 'Internal server error' });
   }
 };
@@ -36,7 +36,7 @@ export const adjustInventory = async (req: AuthenticatedRequest, res: Response):
 
     res.status(200).json(result);
   } catch (error: any) {
-    logger.error('Adjust inventory error:', error);
+    logger.error({ err: error }, 'Adjust inventory error');
 
     if (error.message === 'INVENTORY_NOT_FOUND') {
       res.status(404).json({ code: 'NOT_FOUND', message: 'Inventory record not found' });
@@ -60,7 +60,7 @@ export const getInventoryById = async (req: AuthenticatedRequest, res: Response)
 
     res.status(200).json(inventory);
   } catch (error) {
-    logger.error('Get inventory by id error:', error);
+    logger.error({ err: error }, 'Get inventory by id error');
     res.status(500).json({ code: 'INTERNAL_ERROR', message: 'Internal server error' });
   }
 };
@@ -80,7 +80,7 @@ export const createInventory = async (req: AuthenticatedRequest, res: Response):
 
     res.status(201).json(created);
   } catch (error) {
-    logger.error('Create inventory error:', error);
+    logger.error({ err: error }, 'Create inventory error');
     res.status(500).json({ code: 'INTERNAL_ERROR', message: 'Internal server error' });
   }
 };
@@ -99,7 +99,7 @@ export const updateInventory = async (req: AuthenticatedRequest, res: Response):
 
     res.status(200).json(updated);
   } catch (error: any) {
-    logger.error('Update inventory error:', error);
+    logger.error({ err: error }, 'Update inventory error');
     if (error.message === 'INVENTORY_NOT_FOUND') {
       res.status(404).json({ code: 'NOT_FOUND', message: 'Inventory record not found' });
       return;
@@ -115,7 +115,7 @@ export const deleteInventory = async (req: AuthenticatedRequest, res: Response):
     await inventoryService.delete(tenantId, id);
     res.status(204).send();
   } catch (error: any) {
-    logger.error('Delete inventory error:', error);
+    logger.error({ err: error }, 'Delete inventory error');
     if (error.message === 'INVENTORY_NOT_FOUND') {
       res.status(404).json({ code: 'NOT_FOUND', message: 'Inventory record not found' });
       return;

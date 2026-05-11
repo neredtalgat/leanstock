@@ -10,7 +10,7 @@ export const listSuppliers = async (req: AuthenticatedRequest, res: Response): P
     const suppliers = await supplierService.list(tenantId, { search });
     res.status(200).json(suppliers);
   } catch (error) {
-    logger.error('List suppliers error:', error);
+    logger.error({ err: error }, 'List suppliers error');
     res.status(500).json({ code: 'INTERNAL_ERROR', message: 'Internal server error' });
   }
 };
@@ -28,7 +28,7 @@ export const getSupplier = async (req: AuthenticatedRequest, res: Response): Pro
 
     res.status(200).json(supplier);
   } catch (error) {
-    logger.error('Get supplier error:', error);
+    logger.error({ err: error }, 'Get supplier error');
     res.status(500).json({ code: 'INTERNAL_ERROR', message: 'Internal server error' });
   }
 };
@@ -41,7 +41,7 @@ export const createSupplier = async (req: AuthenticatedRequest, res: Response): 
     const supplier = await supplierService.create(tenantId, { name, email, phone, address });
     res.status(201).json(supplier);
   } catch (error) {
-    logger.error('Create supplier error:', error);
+    logger.error({ err: error }, 'Create supplier error');
     res.status(500).json({ code: 'INTERNAL_ERROR', message: 'Internal server error' });
   }
 };
@@ -59,7 +59,7 @@ export const updateSupplier = async (req: AuthenticatedRequest, res: Response): 
       res.status(404).json({ code: 'SUPPLIER_NOT_FOUND', message: 'Supplier not found' });
       return;
     }
-    logger.error('Update supplier error:', error);
+    logger.error({ err: error }, 'Update supplier error');
     res.status(500).json({ code: 'INTERNAL_ERROR', message: 'Internal server error' });
   }
 };
@@ -81,7 +81,7 @@ export const deleteSupplier = async (req: AuthenticatedRequest, res: Response): 
       res.status(409).json({ code: 'SUPPLIER_HAS_PURCHASE_ORDERS', message: 'Cannot delete supplier with existing purchase orders' });
       return;
     }
-    logger.error('Delete supplier error:', error);
+    logger.error({ err: error }, 'Delete supplier error');
     res.status(500).json({ code: 'INTERNAL_ERROR', message: 'Internal server error' });
   }
 };
@@ -98,7 +98,7 @@ export const getSupplierProducts = async (req: AuthenticatedRequest, res: Respon
       res.status(404).json({ code: 'SUPPLIER_NOT_FOUND', message: 'Supplier not found' });
       return;
     }
-    logger.error('Get supplier products error:', error);
+    logger.error({ err: error }, 'Get supplier products error');
     res.status(500).json({ code: 'INTERNAL_ERROR', message: 'Internal server error' });
   }
 };
@@ -126,7 +126,7 @@ export const addSupplierProduct = async (req: AuthenticatedRequest, res: Respons
       res.status(404).json({ code: 'PRODUCT_NOT_FOUND', message: 'Product not found' });
       return;
     }
-    logger.error('Add supplier product error:', error);
+    logger.error({ err: error }, 'Add supplier product error');
     res.status(500).json({ code: 'INTERNAL_ERROR', message: 'Internal server error' });
   }
 };
@@ -143,7 +143,7 @@ export const removeSupplierProduct = async (req: AuthenticatedRequest, res: Resp
       res.status(404).json({ code: 'SUPPLIER_NOT_FOUND', message: 'Supplier not found' });
       return;
     }
-    logger.error('Remove supplier product error:', error);
+    logger.error({ err: error }, 'Remove supplier product error');
     res.status(500).json({ code: 'INTERNAL_ERROR', message: 'Internal server error' });
   }
 };

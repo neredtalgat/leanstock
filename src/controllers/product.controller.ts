@@ -6,7 +6,7 @@ import { CreateProductInput, UpdateProductInput, ProductQueryInput, ProductIdPar
 
 export const createProduct = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
-    const body = req.body as any;
+    const body = req.body as CreateProductInput & { basePrice?: number };
     const normalizedData: CreateProductInput = {
       ...body,
       baseCost: body.baseCost ?? body.basePrice,
@@ -105,7 +105,7 @@ export const getProduct = async (req: AuthenticatedRequest, res: Response): Prom
 export const updateProduct = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params as unknown as ProductIdParam;
-    const body = req.body as any;
+    const body = req.body as UpdateProductInput;
     const data: UpdateProductInput = {
       ...body,
       ...(body.basePrice !== undefined && body.retailPrice === undefined

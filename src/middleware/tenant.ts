@@ -50,12 +50,12 @@ export const injectTenant = (req: AuthenticatedRequest, res: Response, next: Nex
       store.isSuperAdmin = true;
     }
 
-    asyncLocalStorage.run(store as any, () => {
+    asyncLocalStorage.run(store as { tenantId: string; isSuperAdmin?: boolean }, () => {
       req.tenantId = tenantId;
       next();
     });
   } catch (error) {
-    logger.error('Tenant injection error:', error);
+    logger.error({ err: error }, 'Tenant injection error');
     res.status(500).json({
       code: 'INTERNAL_ERROR',
       message: 'Internal server error',

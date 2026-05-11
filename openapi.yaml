@@ -1,0 +1,1540 @@
+openapi: 3.0.0
+info:
+  title: Leanstock API
+  description: Production-grade inventory management system with multi-tenant architecture
+  version: 1.0.0
+  contact:
+    name: Leanstock Team
+    email: support@leanstock.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:3001/api/v1
+    description: Development server
+  - url: https://api.leanstock.com/api/v1
+    description: Production server
+
+security:
+  - bearerAuth: []
+
+paths:
+  # Authentication endpoints
+  /auth/register:
+    post:
+      tags:
+        - Authentication
+      summary: Register a new user
+      description: Create a new user account with email verification
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+            examples:
+              store_associate:
+                summary: Store Associate Registration
+                value:
+                  email: "john@store.com"
+                  password: "SecurePassword123!"
+                  firstName: "John"
+                  lastName: "Doe"
+                  tenantId: "tenant-uuid-here"
+      responses:
+        '201':
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+              examples:
+                success:
+                  summary: Registration successful
+                  value:
+                    user:
+                      id: "user-123"
+                      email: "john@store.com"
+                      firstName: "John"
+                      lastName: "Doe"
+                      role: "STORE_ASSOCIATE"
+                      isActive: true
+                      emailVerified: false
+                      createdAt: "2024-01-01T00:00:00Z"
+                    accessToken: "eyJhbGciOiJIUzI1NiIs..."
+                    refreshToken: "eyJhbGciOiJIUzI1NiIs..."
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: Login with email and password
+      description: Authenticate user and receive JWT tokens
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+            examples:
+              valid_login:
+                summary: Valid login credentials
+                value:
+                  email: "john@store.com"
+                  password: "SecurePassword123!"
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+              examples:
+                success:
+                  summary: Login successful
+                  value:
+                    user:
+                      id: "user-123"
+                      email: "john@store.com"
+                      firstName: "John"
+                      lastName: "Doe"
+                      role: "STORE_ASSOCIATE"
+                      isActive: true
+                      emailVerified: true
+                      lastLoginAt: "2024-01-01T12:00:00Z"
+                    accessToken: "eyJhbGciOiJIUzI1NiIs..."
+                    refreshToken: "eyJhbGciOiJIUzI1NiIs..."
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /auth/refresh:
+    post:
+      tags:
+        - Authentication
+      summary: Refresh access token
+      description: Get new access token using refresh token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshTokenRequest'
+      responses:
+        '200':
+          description: Token refreshed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /auth/logout:
+    post:
+      tags:
+        - Authentication
+      summary: Logout and revoke refresh token
+      description: Invalidate refresh token and logout user
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Logout successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Logged out successfully"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /auth/verify-email:
+    post:
+      tags:
+        - Authentication
+      summary: Verify email address
+      description: Verify user email using verification token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmailVerificationRequest'
+      responses:
+        '200':
+          description: Email verified successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Email verified successfully"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /auth/request-password-reset:
+    post:
+      tags:
+        - Authentication
+      summary: Request password reset email
+      description: Send password reset link to user email
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasswordResetRequest'
+      responses:
+        '200':
+          description: Password reset email sent
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Password reset email sent successfully"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /auth/reset-password:
+    post:
+      tags:
+        - Authentication
+      summary: Reset password with token
+      description: Reset user password using reset token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasswordResetConfirmRequest'
+      responses:
+        '200':
+          description: Password reset successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Password reset successfully"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /auth/resend-verification:
+    post:
+      tags:
+        - Authentication
+      summary: Resend verification email
+      description: Resend email verification link
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResendVerificationRequest'
+      responses:
+        '200':
+          description: Verification email sent
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Verification email sent successfully"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # Products endpoints
+  /products:
+    get:
+      tags:
+        - Products
+      summary: List all products with pagination
+      description: Get paginated list of products for the tenant
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - $ref: '#/components/parameters/SearchParam'
+        - $ref: '#/components/parameters/SortByParam'
+        - $ref: '#/components/parameters/SortOrderParam'
+      responses:
+        '200':
+          description: Products retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedProductsResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    post:
+      tags:
+        - Products
+      summary: Create a new product
+      description: Create a new product (requires products:create permission)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProductRequest'
+            examples:
+              new_product:
+                summary: New product creation
+                value:
+                  sku: "PROD-001"
+                  name: "Premium Widget"
+                  description: "High-quality widget for industrial use"
+                  baseCost: 25.50
+                  retailPrice: 49.99
+                  weight: 1.5
+      responses:
+        '201':
+          description: Product created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /products/{id}:
+    get:
+      tags:
+        - Products
+      summary: Get a single product by ID
+      description: Retrieve specific product details
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ProductIdParam'
+      responses:
+        '200':
+          description: Product retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    put:
+      tags:
+        - Products
+      summary: Update a product
+      description: Update product details (requires products:update permission)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ProductIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProductRequest'
+      responses:
+        '200':
+          description: Product updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    delete:
+      tags:
+        - Products
+      summary: Delete a product
+      description: Delete product (requires products:delete permission)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ProductIdParam'
+      responses:
+        '204':
+          description: Product deleted successfully
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /products/{id}/images:
+    post:
+      tags:
+        - Products
+      summary: Upload product image
+      description: Upload product image (requires products:update permission)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ProductIdParam'
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                image:
+                  type: string
+                  format: binary
+                isPrimary:
+                  type: boolean
+                  default: false
+      responses:
+        '201':
+          description: Image uploaded successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductImageResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # Inventory endpoints
+  /inventory:
+    get:
+      tags:
+        - Inventory
+      summary: List all inventory with filters
+      description: Get paginated list of inventory records with filtering options
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - $ref: '#/components/parameters/SearchParam'
+        - $ref: '#/components/parameters/SortByParam'
+        - $ref: '#/components/parameters/SortOrderParam'
+        - name: productId
+          in: query
+          description: Filter by product ID
+          required: false
+          schema:
+            type: string
+        - name: locationId
+          in: query
+          description: Filter by location ID
+          required: false
+          schema:
+            type: string
+        - name: lowStock
+          in: query
+          description: Filter low stock items
+          required: false
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: Inventory retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedInventoryResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    post:
+      tags:
+        - Inventory
+      summary: Create inventory record
+      description: Create new inventory record (requires inventory:create permission)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateInventoryRequest'
+      responses:
+        '201':
+          description: Inventory created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InventoryResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /inventory/{id}:
+    get:
+      tags:
+        - Inventory
+      summary: Get inventory by ID
+      description: Retrieve specific inventory record
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/InventoryIdParam'
+      responses:
+        '200':
+          description: Inventory retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InventoryResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    put:
+      tags:
+        - Inventory
+      summary: Update inventory record
+      description: Update inventory details (requires inventory:update permission)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/InventoryIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateInventoryRequest'
+      responses:
+        '200':
+          description: Inventory updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InventoryResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    delete:
+      tags:
+        - Inventory
+      summary: Delete inventory record
+      description: Delete inventory record (requires inventory:delete permission)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/InventoryIdParam'
+      responses:
+        '204':
+          description: Inventory deleted successfully
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /inventory/adjust:
+    post:
+      tags:
+        - Inventory
+      summary: Adjust inventory quantity
+      description: Adjust inventory quantity with audit trail (requires inventory:adjust permission)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdjustInventoryRequest'
+            examples:
+              increase_stock:
+                summary: Increase stock
+                value:
+                  productId: "prod-123"
+                  locationId: "loc-123"
+                  quantity: 50
+                  type: "IN"
+                  notes: "New stock arrival"
+              decrease_stock:
+                summary: Decrease stock
+                value:
+                  productId: "prod-123"
+                  locationId: "loc-123"
+                  quantity: 10
+                  type: "OUT"
+                  notes: "Damaged items removed"
+      responses:
+        '200':
+          description: Inventory adjusted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InventoryResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /inventory/movements:
+    get:
+      tags:
+        - Inventory
+      summary: List inventory movements
+      description: Get paginated list of inventory movements with filtering
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - $ref: '#/components/parameters/SearchParam'
+        - $ref: '#/components/parameters/SortByParam'
+        - $ref: '#/components/parameters/SortOrderParam'
+        - name: productId
+          in: query
+          description: Filter by product ID
+          required: false
+          schema:
+            type: string
+        - name: locationId
+          in: query
+          description: Filter by location ID
+          required: false
+          schema:
+            type: string
+        - name: type
+          in: query
+          description: Filter by movement type
+          required: false
+          schema:
+            type: string
+            enum: [IN, OUT, ADJUSTMENT, TRANSFER_OUT, TRANSFER_IN, RETURN]
+        - name: dateFrom
+          in: query
+          description: Filter by date from
+          required: false
+          schema:
+            type: string
+            format: date
+        - name: dateTo
+          in: query
+          description: Filter by date to
+          required: false
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Movements retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedMovementsResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /inventory/movements/{id}:
+    get:
+      tags:
+        - Inventory
+      summary: Get inventory movement by ID
+      description: Retrieve specific inventory movement record
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: Movement ID
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Movement retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InventoryMovementResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT access token
+
+  schemas:
+    # Request schemas
+    RegisterRequest:
+      type: object
+      required:
+        - email
+        - password
+        - firstName
+        - lastName
+        - tenantId
+      properties:
+        email:
+          type: string
+          format: email
+          example: "john@store.com"
+        password:
+          type: string
+          minLength: 8
+          example: "SecurePassword123!"
+        firstName:
+          type: string
+          minLength: 1
+          maxLength: 50
+          example: "John"
+        lastName:
+          type: string
+          minLength: 1
+          maxLength: 50
+          example: "Doe"
+        tenantId:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          example: "john@store.com"
+        password:
+          type: string
+          example: "SecurePassword123!"
+
+    RefreshTokenRequest:
+      type: object
+      required:
+        - refreshToken
+      properties:
+        refreshToken:
+          type: string
+          example: "eyJhbGciOiJIUzI1NiIs..."
+
+    EmailVerificationRequest:
+      type: object
+      required:
+        - token
+      properties:
+        token:
+          type: string
+          example: "eyJhbGciOiJIUzI1NiIs..."
+        tenantId:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+
+    PasswordResetRequest:
+      type: object
+      required:
+        - email
+        - tenantId
+      properties:
+        email:
+          type: string
+          format: email
+          example: "john@store.com"
+        tenantId:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+
+    PasswordResetConfirmRequest:
+      type: object
+      required:
+        - token
+        - newPassword
+        - tenantId
+      properties:
+        token:
+          type: string
+          example: "eyJhbGciOiJIUzI1NiIs..."
+        newPassword:
+          type: string
+          minLength: 8
+          example: "NewSecurePassword123!"
+        tenantId:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+
+    ResendVerificationRequest:
+      type: object
+      required:
+        - email
+        - tenantId
+      properties:
+        email:
+          type: string
+          format: email
+          example: "john@store.com"
+        tenantId:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+
+    CreateProductRequest:
+      type: object
+      required:
+        - sku
+        - name
+        - baseCost
+        - retailPrice
+      properties:
+        sku:
+          type: string
+          minLength: 1
+          maxLength: 50
+          example: "PROD-001"
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+          example: "Premium Widget"
+        description:
+          type: string
+          maxLength: 1000
+          example: "High-quality widget for industrial use"
+        baseCost:
+          type: number
+          minimum: 0
+          example: 25.50
+        retailPrice:
+          type: number
+          minimum: 0
+          example: 49.99
+        weight:
+          type: number
+          minimum: 0
+          example: 1.5
+
+    UpdateProductRequest:
+      type: object
+      properties:
+        sku:
+          type: string
+          minLength: 1
+          maxLength: 50
+          example: "PROD-001-UPDATED"
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+          example: "Premium Widget Pro"
+        description:
+          type: string
+          maxLength: 1000
+          example: "Enhanced widget with improved features"
+        baseCost:
+          type: number
+          minimum: 0
+          example: 28.75
+        retailPrice:
+          type: number
+          minimum: 0
+          example: 59.99
+        weight:
+          type: number
+          minimum: 0
+          example: 1.6
+
+    CreateInventoryRequest:
+      type: object
+      required:
+        - productId
+        - locationId
+        - quantity
+      properties:
+        productId:
+          type: string
+          example: "prod-123"
+        locationId:
+          type: string
+          example: "loc-123"
+        quantity:
+          type: integer
+          minimum: 0
+          example: 100
+        reservedQuantity:
+          type: integer
+          minimum: 0
+          default: 0
+          example: 10
+        inTransit:
+          type: integer
+          minimum: 0
+          default: 0
+          example: 5
+
+    UpdateInventoryRequest:
+      type: object
+      properties:
+        quantity:
+          type: integer
+          minimum: 0
+          example: 150
+        reservedQuantity:
+          type: integer
+          minimum: 0
+          example: 15
+        inTransit:
+          type: integer
+          minimum: 0
+          example: 8
+        daysInInventory:
+          type: integer
+          minimum: 0
+          example: 45
+
+    AdjustInventoryRequest:
+      type: object
+      required:
+        - productId
+        - locationId
+        - quantity
+        - type
+      properties:
+        productId:
+          type: string
+          example: "prod-123"
+        locationId:
+          type: string
+          example: "loc-123"
+        quantity:
+          type: integer
+          example: 25
+        type:
+          type: string
+          enum: [IN, OUT, ADJUSTMENT]
+          example: "IN"
+        notes:
+          type: string
+          maxLength: 500
+          example: "New stock arrival from supplier"
+        referenceId:
+          type: string
+          example: "po-123"
+
+    # Response schemas
+    AuthResponse:
+      type: object
+      properties:
+        user:
+          $ref: '#/components/schemas/UserResponse'
+        accessToken:
+          type: string
+          example: "eyJhbGciOiJIUzI1NiIs..."
+        refreshToken:
+          type: string
+          example: "eyJhbGciOiJIUzI1NiIs..."
+
+    TokenResponse:
+      type: object
+      properties:
+        accessToken:
+          type: string
+          example: "eyJhbGciOiJIUzI1NiIs..."
+        refreshToken:
+          type: string
+          example: "eyJhbGciOiJIUzI1NiIs..."
+
+    UserResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "user-123"
+        email:
+          type: string
+          format: email
+          example: "john@store.com"
+        firstName:
+          type: string
+          example: "John"
+        lastName:
+          type: string
+          example: "Doe"
+        role:
+          $ref: '#/components/schemas/UserRole'
+        isActive:
+          type: boolean
+          example: true
+        emailVerified:
+          type: boolean
+          example: true
+        lastLoginAt:
+          type: string
+          format: date-time
+          example: "2024-01-01T12:00:00Z"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2024-01-01T00:00:00Z"
+
+    UserRole:
+      type: string
+      enum:
+        - SUPER_ADMIN
+        - TENANT_ADMIN
+        - REGIONAL_MANAGER
+        - STORE_MANAGER
+        - STORE_ASSOCIATE
+        - SUPPLIER
+
+    ProductResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "prod-123"
+        sku:
+          type: string
+          example: "PROD-001"
+        name:
+          type: string
+          example: "Premium Widget"
+        description:
+          type: string
+          example: "High-quality widget for industrial use"
+        baseCost:
+          type: number
+          example: 25.50
+        retailPrice:
+          type: number
+          example: 49.99
+        weight:
+          type: number
+          example: 1.5
+        createdAt:
+          type: string
+          format: date-time
+          example: "2024-01-01T00:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2024-01-01T00:00:00Z"
+
+    ProductImageResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "img-123"
+        url:
+          type: string
+          example: "https://example.com/images/product-123.jpg"
+        isPrimary:
+          type: boolean
+          example: true
+        createdAt:
+          type: string
+          format: date-time
+          example: "2024-01-01T00:00:00Z"
+
+    PaginatedProductsResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProductResponse'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    InventoryResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "inv-123"
+        productId:
+          type: string
+          example: "prod-123"
+        locationId:
+          type: string
+          example: "loc-123"
+        quantity:
+          type: integer
+          example: 100
+        reservedQuantity:
+          type: integer
+          example: 10
+        inTransit:
+          type: integer
+          example: 5
+        daysInInventory:
+          type: integer
+          example: 45
+        lastMovedAt:
+          type: string
+          format: date-time
+          example: "2024-01-01T12:00:00Z"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2024-01-01T00:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2024-01-01T00:00:00Z"
+        product:
+          $ref: '#/components/schemas/ProductResponse'
+        location:
+          $ref: '#/components/schemas/LocationResponse'
+
+    PaginatedInventoryResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/InventoryResponse'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    InventoryMovementResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "mov-123"
+        inventoryId:
+          type: string
+          example: "inv-123"
+        type:
+          type: string
+          enum: [IN, OUT, ADJUSTMENT, TRANSFER_OUT, TRANSFER_IN, RETURN]
+          example: "IN"
+        quantity:
+          type: integer
+          example: 25
+        referenceId:
+          type: string
+          example: "po-123"
+        notes:
+          type: string
+          example: "New stock arrival"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2024-01-01T12:00:00Z"
+        inventory:
+          $ref: '#/components/schemas/InventoryResponse'
+
+    PaginatedMovementsResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/InventoryMovementResponse'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    LocationResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "loc-123"
+        name:
+          type: string
+          example: "Main Warehouse"
+        type:
+          type: string
+          example: "WAREHOUSE"
+        address:
+          type: string
+          example: "123 Main St, City, State"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2024-01-01T00:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2024-01-01T00:00:00Z"
+
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+          example: 1
+        limit:
+          type: integer
+          example: 20
+        total:
+          type: integer
+          example: 150
+        totalPages:
+          type: integer
+          example: 8
+        hasNext:
+          type: boolean
+          example: true
+        hasPrev:
+          type: boolean
+          example: false
+
+    # Error schemas
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          example: "Validation failed"
+        message:
+          type: string
+          example: "Invalid input data"
+        details:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+                example: "email"
+              message:
+                type: string
+                example: "Invalid email format"
+
+  parameters:
+    PageParam:
+      name: page
+      in: query
+      description: Page number for pagination
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+      example: 1
+
+    LimitParam:
+      name: limit
+      in: query
+      description: Number of items per page
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+      example: 20
+
+    SearchParam:
+      name: search
+      in: query
+      description: Search term for filtering
+      required: false
+      schema:
+        type: string
+        maxLength: 100
+      example: "widget"
+
+    SortByParam:
+      name: sortBy
+      in: query
+      description: Field to sort by
+      required: false
+      schema:
+        type: string
+        enum: [name, sku, createdAt, updatedAt]
+        default: createdAt
+      example: name
+
+    SortOrderParam:
+      name: sortOrder
+      in: query
+      description: Sort order
+      required: false
+      schema:
+        type: string
+        enum: [asc, desc]
+        default: desc
+      example: asc
+
+    ProductIdParam:
+      name: id
+      in: path
+      description: Product ID
+      required: true
+      schema:
+        type: string
+      example: "prod-123"
+
+    InventoryIdParam:
+      name: id
+      in: path
+      description: Inventory ID
+      required: true
+      schema:
+        type: string
+      example: "inv-123"
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            bad_request:
+              summary: Bad request example
+              value:
+                error: "Bad Request"
+                message: "Invalid request data"
+                details: []
+
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            unauthorized:
+              summary: Unauthorized example
+              value:
+                error: "Unauthorized"
+                message: "Authentication required"
+
+    Forbidden:
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            forbidden:
+              summary: Forbidden example
+              value:
+                error: "Forbidden"
+                message: "Insufficient permissions"
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            not_found:
+              summary: Not found example
+              value:
+                error: "Not Found"
+                message: "Resource not found"
+
+    Conflict:
+      description: Resource conflict
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            conflict:
+              summary: Conflict example
+              value:
+                error: "Conflict"
+                message: "Resource already exists"
+
+    ValidationError:
+      description: Validation error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            validation_error:
+              summary: Validation error example
+              value:
+                error: "Validation Error"
+                message: "Input validation failed"
+                details:
+                  - field: "email"
+                    message: "Invalid email format"
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            internal_error:
+              summary: Internal server error example
+              value:
+                error: "Internal Server Error"
+                message: "An unexpected error occurred"
+
+tags:
+  - name: Authentication
+    description: User authentication and authorization endpoints
+  - name: Products
+    description: Product management endpoints
+  - name: Inventory
+    description: Inventory management endpoints
+  - name: Transfers
+    description: Transfer order management endpoints
+  - name: Purchases
+    description: Purchase order management endpoints
+  - name: Suppliers
+    description: Supplier management endpoints
+  - name: Locations
+    description: Location management endpoints
+  - name: Reports
+    description: Reporting and analytics endpoints
+  - name: System
+    description: System settings and administration endpoints

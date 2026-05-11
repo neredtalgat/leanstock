@@ -24,16 +24,12 @@ export const deadStockWorker = new Worker(
       for (const tenant of tenants) {
         logger.info(`Processing dead stock for tenant: ${tenant.name} (${tenant.id})`);
 
-        // Set tenant context
-        const store = asyncLocalStorage.getStore();
-        if (store) {
-          store.tenantId = tenant.id;
-        }
-
-        const updated = await deadStockService.applyDiscounts(tenant.id);
-        totalUpdated += updated;
-
-        logger.info(`Tenant ${tenant.id}: ${updated} products discounted`);
+        // Set tenant context using run() to properly isolate context
+        await asyncLocalStorage.run({ tenantId: tenant.id }, async () => {
+          const updated = await deadStockService.applyDiscounts(tenant.id);
+          totalUpdated += updated;
+          logger.info(`Tenant ${tenant.id}: ${updated} products discounted`);
+        });
       }
 
       logger.info(`Dead stock job completed: ${totalUpdated} products updated`);
@@ -70,3 +66,11 @@ deadStockWorker.on('completed', (job) => {
 deadStockWorker.on('failed', (job, err) => {
   logger.error({ err }, `Dead stock job ${job?.id} failed`);
 });
+
+/**
+ * Close worker gracefully
+ */
+export async function closeDeadStockWorker(): Promise<void> {
+  await deadStockWorker.close();
+  await deadStockQueue.close();
+}
