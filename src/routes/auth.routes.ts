@@ -49,4 +49,48 @@ router.post(
   authController.logout,
 );
 
+/**
+ * POST /auth/verify-email
+ * Verify email address
+ */
+router.post(
+  '/verify-email',
+  authRateLimit,
+  validate(z.object({ token: z.string(), tenantId: z.string().optional() })),
+  authController.verifyEmail,
+);
+
+/**
+ * POST /auth/request-password-reset
+ * Request password reset email
+ */
+router.post(
+  '/request-password-reset',
+  authRateLimit,
+  validate(z.object({ email: z.string().email(), tenantId: z.string() })),
+  authController.requestPasswordReset,
+);
+
+/**
+ * POST /auth/reset-password
+ * Reset password with token
+ */
+router.post(
+  '/reset-password',
+  authRateLimit,
+  validate(z.object({ token: z.string(), newPassword: z.string().min(8), tenantId: z.string() })),
+  authController.resetPassword,
+);
+
+/**
+ * POST /auth/resend-verification
+ * Resend verification email
+ */
+router.post(
+  '/resend-verification',
+  authRateLimit,
+  validate(z.object({ email: z.string().email(), tenantId: z.string() })),
+  authController.resendVerificationEmail,
+);
+
 export default router;

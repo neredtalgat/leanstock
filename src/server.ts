@@ -2,6 +2,7 @@ import { createApp } from './app';
 import { env } from './config/env';
 import { logger } from './config/logger';
 import { loadScripts } from './config/redis';
+import { initializeJobs } from './jobs';
 
 async function startServer(): Promise<void> {
   try {
