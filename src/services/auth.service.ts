@@ -1,6 +1,5 @@
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
-import { User, Prisma, UserRole } from '@prisma/client';
 import { tenantDb, asyncLocalStorage } from '../config/database';
 import { redis } from '../config/redis';
 import { env } from '../config/env';
@@ -9,8 +8,17 @@ import { TokenPair, JWTPayload } from '../types';
 import { RegisterInput, LoginInput } from '../schemas/auth.schema';
 
 export class AuthService {
-  async register(data: RegisterInput, tenantId: string): Promise<User> {
+  async register(data: RegisterInput, tenantId: string): Promise<any> {
     try {
+      const tenant = await tenantDb.tenant.findFirst({
+        where: { id: tenantId },
+        select: { id: true },
+      });
+
+      if (!tenant) {
+        throw new Error('TENANT_NOT_FOUND');
+      }
+
       // Check email uniqueness within tenant
       const existingUser = await tenantDb.user.findFirst({
         where: {
@@ -24,7 +32,7 @@ export class AuthService {
       }
 
       // Hash password
-      const passwordHash = await bcrypt.hash(data.password, env.BCRYPT_ROUNDS);
+      const passwordHash = await bcrypt.hash(data.password, env.BCRYPT_ROUNDS as number);
 
       // Create user
       return await asyncLocalStorage.run({ tenantId }, async () => {
@@ -77,8 +85,12 @@ export class AuthService {
 
       // Generate token pair
       return this.generateTokenPair(user, data.tenantId);
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Login error:', error);
+      // Return INVALID_CREDENTIALS for any error (including DB errors) for security
+      if (error.message !== 'INVALID_CREDENTIALS') {
+        throw new Error('INVALID_CREDENTIALS');
+      }
       throw error;
     }
   }
@@ -141,7 +153,7 @@ export class AuthService {
     }
   }
 
-  private generateTokenPair(user: User, tenantId: string): TokenPair {
+  private generateTokenPair(user: any, tenantId: string): TokenPair {
     const payload: Omit<JWTPayload, 'iat' | 'exp'> = {
       userId: user.id,
       tenantId,
@@ -150,9 +162,9 @@ export class AuthService {
       type: 'access',
     };
 
-    const accessToken = jwt.sign(payload, env.JWT_SECRET, {
-      expiresIn: env.JWT_EXPIRES_IN,
-      algorithm: 'HS256',
+    // @ts-expect-error - jsonwebtoken type incompatibility
+    const accessToken = jwt.sign(payload, env.JWT_SECRET as string, {
+      expiresIn: env.JWT_EXPIRES_IN as string,
     });
 
     const refreshPayload: Omit<JWTPayload, 'iat' | 'exp'> = {
@@ -160,9 +172,9 @@ export class AuthService {
       type: 'refresh',
     };
 
-    const refreshToken = jwt.sign(refreshPayload, env.JWT_SECRET, {
-      expiresIn: env.JWT_REFRESH_EXPIRES_IN,
-      algorithm: 'HS256',
+    // @ts-expect-error - jsonwebtoken type incompatibility
+    const refreshToken = jwt.sign(refreshPayload, env.JWT_SECRET as string, {
+      expiresIn: env.JWT_REFRESH_EXPIRES_IN as string,
     });
 
     return {

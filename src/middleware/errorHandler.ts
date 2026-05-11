@@ -1,4 +1,4 @@
-import { Response, NextFunction } from 'express';
+import { Response } from 'express';
 import { logger } from '../config/logger';
 import { AuthenticatedRequest, ErrorResponse } from '../types';
 
@@ -18,7 +18,6 @@ export const errorHandler = (
   error: Error | AppError,
   req: AuthenticatedRequest,
   res: Response,
-  next: NextFunction,
 ): void => {
   const timestamp = new Date().toISOString();
 

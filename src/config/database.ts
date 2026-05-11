@@ -19,13 +19,15 @@ export function getPrisma(): PrismaClient {
 
     // Log queries in development
     if (process.env.NODE_ENV === 'development') {
-      prismaInstance.$on('query', (e) => {
+      // @ts-expect-error - Prisma event types
+      prismaInstance.$on('query', (e: any) => {
         logger.debug(`Query: ${e.query}`);
         logger.debug(`Duration: ${e.duration}ms`);
       });
     }
 
-    prismaInstance.$on('error', (e) => {
+    // @ts-expect-error - Prisma event types
+    prismaInstance.$on('error', (e: any) => {
       logger.error(`Database error: ${e.message}`);
     });
 
@@ -45,6 +47,26 @@ export const createTenantAwareDb = () => {
   const prisma = db.$extends({
     query: {
       $allModels: {
+        async create({ args, query }) {
+          const store = asyncLocalStorage.getStore();
+          if (store?.tenantId && !store?.isSuperAdmin) {
+            const mutableArgs = args as any;
+            mutableArgs.data = { ...mutableArgs.data, tenantId: store.tenantId };
+          }
+          return query(args);
+        },
+        async createMany({ args, query }) {
+          const store = asyncLocalStorage.getStore();
+          if (store?.tenantId && !store?.isSuperAdmin) {
+            const mutableArgs = args as any;
+            if (Array.isArray(mutableArgs.data)) {
+              mutableArgs.data = mutableArgs.data.map((item: any) => ({ ...item, tenantId: store.tenantId }));
+            } else {
+              mutableArgs.data = { ...mutableArgs.data, tenantId: store.tenantId };
+            }
+          }
+          return query(args);
+        },
         async findMany({ args, query }) {
           const store = asyncLocalStorage.getStore();
           if (store?.tenantId && !store?.isSuperAdmin) {
@@ -53,6 +75,10 @@ export const createTenantAwareDb = () => {
           return query(args);
         },
         async findUnique({ args, query }) {
+          const store = asyncLocalStorage.getStore();
+          if (store?.tenantId && !store?.isSuperAdmin) {
+            throw new Error('UNSAFE_FIND_UNIQUE_IN_TENANT_CONTEXT');
+          }
           return query(args);
         },
         async findFirst({ args, query }) {
@@ -77,6 +103,10 @@ export const createTenantAwareDb = () => {
           return query(args);
         },
         async delete({ args, query }) {
+          const store = asyncLocalStorage.getStore();
+          if (store?.tenantId && !store?.isSuperAdmin) {
+            throw new Error('UNSAFE_DELETE_IN_TENANT_CONTEXT');
+          }
           return query(args);
         },
         async deleteMany({ args, query }) {

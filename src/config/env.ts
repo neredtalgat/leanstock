@@ -1,8 +1,11 @@
+import dotenv from 'dotenv';
 import { z } from 'zod';
+
+dotenv.config();
 
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
-  PORT: z.coerce.number().int().min(1).max(65535).default(3000),
+  PORT: z.coerce.number().int().min(1).max(65535).default(3001),
   
   // Database
   DATABASE_URL: z.string().url('DATABASE_URL must be a valid URL'),
@@ -23,7 +26,7 @@ const envSchema = z.object({
   RATE_LIMIT_MAX_REQUESTS: z.coerce.number().int().positive().default(5),
   
   // Logging
-  LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
+  LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('debug'),
 });
 
 type Environment = z.infer<typeof envSchema>;
@@ -31,18 +34,7 @@ type Environment = z.infer<typeof envSchema>;
 let config: Environment;
 
 function validateEnv(): Environment {
-  try {
-    return envSchema.parse(process.env);
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      console.error('❌ Environment validation failed:');
-      error.errors.forEach(err => {
-        console.error(`  ${err.path.join('.')}: ${err.message}`);
-      });
-      process.exit(1);
-    }
-    throw error;
-  }
+  return envSchema.parse(process.env);
 }
 
 function getConfig(): Environment {

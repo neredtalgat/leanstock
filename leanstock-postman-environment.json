@@ -1,0 +1,12 @@
+{
+  "name": "LeanStock Local (Current)",
+  "values": [
+    { "key": "baseUrl", "value": "http://localhost:3000", "enabled": true },
+    { "key": "tenantId", "value": "", "enabled": true },
+    { "key": "accessToken", "value": "", "enabled": true },
+    { "key": "refreshToken", "value": "", "enabled": true },
+    { "key": "superAdminAccessToken", "value": "", "enabled": true },
+    { "key": "productId", "value": "", "enabled": true },
+    { "key": "locationId", "value": "", "enabled": true }
+  ]
+}

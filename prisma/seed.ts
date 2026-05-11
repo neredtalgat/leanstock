@@ -33,7 +33,6 @@ async function main() {
   // Create tenant
   const tenant = await prisma.tenant.create({
     data: {
-      id: '550e8400-e29b-41d4-a716-446655440000',
       name: 'Demo Tenant',
     },
   });
@@ -107,7 +106,8 @@ async function main() {
       sku: 'SKU-001',
       name: 'Product A',
       description: 'Sample product A',
-      basePrice: 29.99,
+      baseCost: 20.00,
+      retailPrice: 29.99,
       weight: 1.5,
     },
   });
@@ -119,7 +119,8 @@ async function main() {
       sku: 'SKU-002',
       name: 'Product B',
       description: 'Sample product B',
-      basePrice: 49.99,
+      baseCost: 35.00,
+      retailPrice: 49.99,
       weight: 2.0,
     },
   });

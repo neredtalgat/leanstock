@@ -32,16 +32,16 @@ async function startServer(): Promise<void> {
 
     // Handle uncaught exceptions
     process.on('uncaughtException', (error) => {
-      logger.error('Uncaught exception:', error);
+      logger.error({ err: error }, 'Uncaught exception');
       process.exit(1);
     });
 
     process.on('unhandledRejection', (reason, promise) => {
-      logger.error('Unhandled rejection at:', promise, 'reason:', reason);
+      logger.error({ promise, reason }, 'Unhandled rejection');
       process.exit(1);
     });
   } catch (error) {
-    logger.error('Failed to start server:', error);
+    logger.error({ err: error }, 'Failed to start server');
     process.exit(1);
   }
 }
