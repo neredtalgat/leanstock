@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import * as purchaseOrderController from '../controllers/purchase-order.controller';
-import { validate } from '../middleware/validate';
+import { validate, validateQuery } from '../middleware/validate';
 import { authenticate } from '../middleware/auth';
 import { injectTenant } from '../middleware/tenant';
 import { requirePermission } from '../middleware/rbac';
@@ -21,7 +21,7 @@ router.get(
   '/',
   authenticate,
   injectTenant,
-  validate(listPurchaseOrderSchema),
+  validateQuery(listPurchaseOrderSchema),
   purchaseOrderController.listPurchaseOrders,
 );
 

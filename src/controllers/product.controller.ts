@@ -6,10 +6,15 @@ import { CreateProductInput, UpdateProductInput, ProductQueryInput, ProductIdPar
 
 export const createProduct = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
-    const data = req.body as CreateProductInput;
+    const body = req.body as any;
+    const normalizedData: CreateProductInput = {
+      ...body,
+      baseCost: body.baseCost ?? body.basePrice,
+      retailPrice: body.retailPrice ?? body.basePrice,
+    };
     const tenantId = req.tenantId!;
 
-    const product = await productService.create(data, tenantId);
+    const product = await productService.create(normalizedData, tenantId);
 
     res.status(201).json({
       id: product.id,
@@ -100,7 +105,16 @@ export const getProduct = async (req: AuthenticatedRequest, res: Response): Prom
 export const updateProduct = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params as unknown as ProductIdParam;
-    const data = req.body as UpdateProductInput;
+    const body = req.body as any;
+    const data: UpdateProductInput = {
+      ...body,
+      ...(body.basePrice !== undefined && body.retailPrice === undefined
+        ? { retailPrice: body.basePrice }
+        : {}),
+      ...(body.basePrice !== undefined && body.baseCost === undefined
+        ? { baseCost: body.basePrice }
+        : {}),
+    };
     const tenantId = req.tenantId!;
 
     const product = await productService.update(id, data, tenantId);

@@ -1,102 +1,77 @@
-1.1 Super Admin
-- Manage the entire SaaS platform
-- Manage tenants (create, suspend, delete)
-- Access to cross-tenant analytics
-- Manage system settings
-- Access to audit logs for all tenants
+Project Philosophy
+This is not a "classroom exercise" or a "toy project". You are building a production-grade backend system that could be deployed as a startup company or to a real client. Your code will be judged by:
+Architectural Rigor: Would a senior engineer approve this design?
+Business Logic Complexity: Does it solve a real pain point with sophisticated rules?
+Scalability: Will it handle 1000 concurrent users without breaking?
+LLM-Proofing: Could we tell if you actually understood the code vs. copy-pasted it?
+🎯 Objective
+This is the final coding milestone for your pre-defense. You must deliver a complete, production-grade backend system that fulfills the scope defined in your approved blueprint. Every feature, workflow, and business rule documented in your technical specification must now be implemented, tested, and documented.
+Scope: Your backend must be 100% feature-complete for pre-defense. This includes all user roles, all business workflows, all background processes, and all API endpoints described in your blueprint. The frontend is not required, but every backend capability must be demonstrable via API calls.
+📋 Description
+You are building the entire server-side application for your chosen track. This is not a prototype — it is the real system. Your code must handle edge cases, enforce business constraints, protect against security threats, and be organized for maintainability.
+All database interactions must remain strictly through your ORM (SQLModel or Prisma). All secrets must remain externalized. All endpoints must be documented and defensible.
+📦 Important Deliverable Files
+Your GitHub repository must contain these exact files:
+Table
+File / Directory	Purpose
+.env.example	Complete template of all environment variables
+README.md	Full setup guide, architecture decisions, and testing instructions
+openapi.yaml	Complete API contract covering all implemented endpoints
+migrations/	Full Alembic or Prisma Migrate history reflecting final schema
+tests/	Comprehensive unit + integration tests
+ 
 
-1.2 Tenant Admin
-- Manage company/tenant profiles
-- Manage users within a tenant
-- Manage locations (stores, warehouses)
-- Set up integrations (POS, Accounting)
-- Subscription and billing management
-- Setting up business logic rules (ROP, markdowns)
+🔧 Requirements
+1. Project Infrastructure & Environment
+GitHub Repository: You must upload your complete codebase to your own public or instructor-accessible GitHub repository. This is mandatory. No ZIP-only submissions.
+Your repo should look like this — code files, folders, README, and the green <> Code button visible:
+GitHub Repository Example
+Environment Validation: App refuses to boot if critical secrets are missing. Use Pydantic Settings (FastAPI) or validated dotenv loader (Express).
+Database Connection: Robust connection pooling, session management, and graceful shutdown handling.
+Migrations: Complete migration history from Sprint 1 through final schema. Must match your blueprint exactly.
+README.md: Complete setup instructions, architecture decisions, and a make test or npm test / pytest command reference.
+Docker (Optional): You may include docker-compose.yml and a Dockerfile if you wish, but this is not required and will not affect grading.
+2. Authentication & Authorization — Must Remain Fully Operational
+Your Sprint 1 auth subsystem must still work perfectly and now protect all business endpoints:
+Registration / Login / Logout / Refresh: Complete JWT lifecycle with refresh token rotation.
+Email Verification on Signup: During registration, your system must send a real verification email to the user's inbox using a 3rd party email service (demonstrated in class). The user must click a verification link or enter a code before their account is fully activated. Unverified users must be blocked from protected routes.
+Password Reset via Email: Users must be able to request a password reset link sent to their real email address.
+RBAC Enforcement: Every role defined in your blueprint (admin, customer, merchant, driver, vendor, etc.) must be implemented. Middleware rejects unauthorized roles with 403.
+Rate Limiting: all auth endpoints and sensitive public endpoints.
+CORS: Properly configured, no wildcards in production.
+3. Complete Business Logic Implementation
+Implement every major workflow from your blueprint. The following table lists the minimum complete feature set per track. If your blueprint promised additional features, they must also be present.
+All tracks must send real email notifications for at least 3 business events using the same 3rd party email service (e.g., order confirmation, payment receipt, circle payout alert, food pickup reminder, trust score update, assignment flagged for review, etc.).
+4. API Documentation
+Swagger UI / API Docs: Live at /docs (FastAPI) or mounted endpoint (Express). Must document every implemented endpoint.
+Contract Compliance: All endpoints must match your submitted openapi.yaml. Any deviations must be documented in CHANGELOG.md with architectural justification.
+Error Handling: Standardized error responses (400, 401, 403, 404, 409, 422, 500) on every endpoint.
+Pagination: Offset/Cursor-based pagination applied consistently to all list endpoints.
+Request/Response Examples: Realistic examples, not placeholder "string" values.
+5. Background Workers & Async Processing
+Redis-backed Jobs: At least one working background worker (Celery, BullMQ, or equivalent) handling non-realtime tasks: dead stock decay, price updates, webhook retries, email/SMS reminders, ledger cron jobs, abandoned cart recovery, etc.
+Email Queue: Email sending must be handled asynchronously via the background worker queue. The API endpoint must not block waiting for the 3rd party email service to respond.
+Cron Scheduling: Documented schedule for recurring jobs.
+Queue Visibility: Jobs must be observable (completed, failed, retry counts).
+6. Testing & Quality Assurance
+Unit Tests: All pure business logic functions must have tests (formulas, algorithms, scoring rubrics, state machines).
+Integration Tests: Optional
+CI/CD (Optional): You may include .github/workflows/ci.yml if you wish, but it is not required and will not affect grading.
+🎤 Oral Defense Requirement (Pre-Defense)
+Before you begin your oral defense, you must open Postman with all your implemented endpoints loaded in separate tabs. This includes every auth endpoint, every business logic endpoint, every admin endpoint, and every background-job trigger endpoint. The examiner will randomly select tabs for live demonstration.
+Your Postman workspace must look like this — every endpoint visible and ready to fire:
+Postman Multiple Tabs Ready for Defense
+Defense Flow:
+Open Postman with all endpoints in separate tabs (auth + all business logic + admin + background triggers).
+Start your application locally and confirm database/Redis connections.
+Demonstrate full auth flow: Register → Receive real verification email → Click verify → Login → Receive tokens → Access protected endpoint with Bearer token → Refresh token → Logout.
+Execute all distinct business workflows end-to-end and explain the database state changes. At least one workflow must trigger a real email notification that you show arriving in an inbox.
+Trigger or demonstrate a background worker (show Redis queue or logs).
+Run your full test suite live (pytest or jest) and show green results.
+Show Swagger UI / API documentation with all endpoints documented.
+Answer architectural questions about your specific implementation under live questioning.
+ 
 
-1.3 Regional Manager
-- Access to multiple locations in your region
-- Managing transfers between locations
-- Viewing aggregated reports for the region
-- Approving large transfers (> $1,000)
-- Managing users in your locations
-
-1.4 Store Manager
-- Managing inventory in your location
-- Creating and managing purchase orders
-- Managing suppliers
-- Conducting inventory
-- Viewing reports for your location
-- Creating transfer requests
-
-1.5 Store Associate
-- Viewing stock levels (excluding cost)
-- Receiving goods
-- Conducting cycle counts
-- Scanning barcodes
-- Basic inventory operations
-
-1.6 Supplier/Vendor (Supplier)
-- Access to the supplier portal (limited)
-- View purchase orders
-- Confirm shipments
-- Update delivery dates
-- Access only to your products and orders
-
-===================================================================================
-
-2. FEATURE LIST BY ROLE
---------------------------------------------------------------------------------
-
-2.1 Super Administrator
-• Create a new tenant with a subdomain
-• View a list of all tenants with their statuses
-• Suspend/resume tenant access
-• Delete a tenant with a full data wipe (GDPR)
-• Access system metrics (CPU, memory, DB)
-• View error logs for all tenants
-• Manage system updates
-• Configure global limits (SKU, API limits)
-
-2.2 Tenant Administrator
-• Editing company profile (name, logo, address)
-• Inviting users via email with role assignment
-• Deactivating/deleting users
-• Creating and setting up locations (up to 100 per tenant)
-• Setting up time zones and currencies by location
-• Integration with POS systems (Square, Shopify POS)
-• Integration with accounting (QuickBooks, Xero)
-• Setting up ROP (Reorder Point) rules by category
-• Setting up a dead stock markdown algorithm
-• Managing API keys for integrations
-• Viewing invoices and managing subscriptions
-
-2.3 Regional Manager
-• Dashboard with metrics for all locations in the region
-• Creating inter-location transfers
-• Approving/rejecting transfer requests Movement
-• View inventory levels for all locations (excluding prices)
-• Sales and turnover analytics by region
-• Manage users in your locations
-• Export reports by region
-
-2.4 Store Manager
-• Current location dashboard with KPIs
-• CRUD operations with products and SKUs
-• Manage product variants (size, color)
-• Upload product images
-• Print barcodes
-• Create purchase orders
-• Track PO status
-• Receipt of goods with quality check
-• Create returns to suppliers
-• Perform full and cycle inventory
-• View reports for your location
-• Manage bin locations (shelves, racks)
-
-2.5 Store Employee
-• View product availability (retail prices only)
-• Scan barcodes with a camera/scanner
-• Accept goods using invoices
-• Perform cycle inventory
-• Mark damage/defects
-• Search Products by Bin Locations
+Automatic 50% Deduction if:
+Raw SQL queries found anywhere in the codebase (ORM requirement violated)
+No working authentication layer

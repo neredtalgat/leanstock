@@ -1,19 +1,19 @@
 import { z } from 'zod';
 
 export const TransferItemSchema = z.object({
-  productId: z.string().cuid(),
+  productId: z.string().min(1),
   quantity: z.number().int().positive(),
 });
 
 export const CreateTransferInput = z.object({
-  fromLocationId: z.string().cuid(),
-  toLocationId: z.string().cuid(),
+  fromLocationId: z.string().min(1),
+  toLocationId: z.string().min(1),
   items: z.array(TransferItemSchema).min(1),
   notes: z.string().optional(),
 });
 
 export const ReceiveItemInput = z.object({
-  productId: z.string().cuid(),
+  productId: z.string().min(1),
   quantityReceived: z.number().int().nonnegative(),
 });
 
@@ -32,7 +32,7 @@ export const ApproveTransferInput = z.object({
 });
 
 export const TransferIdParamSchema = z.object({
-  id: z.string().cuid(),
+  id: z.string().min(1),
 });
 
 export type CreateTransferInput = z.infer<typeof CreateTransferInput>;

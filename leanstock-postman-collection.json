@@ -1,9 +1,9 @@
 {
   "info": {
-    "name": "LeanStock API (Current)",
-    "description": "Updated Postman collection aligned with current API and tenant flow.",
+    "name": "LeanStock API (Complete)",
+    "description": "Complete Postman collection with all available LeanStock API endpoints",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "_postman_id": "leanstock-current-api"
+    "_postman_id": "leanstock-complete-api"
   },
   "item": [
     {
