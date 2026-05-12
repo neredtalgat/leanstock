@@ -1,6 +1,6 @@
 {
-  "id": "leanstock-environment",
-  "name": "LeanStock Local Environment",
+  "id": "leanstock-environment-v2",
+  "name": "LeanStock Environment",
   "values": [
     {
       "key": "baseUrl",
@@ -9,7 +9,7 @@
     },
     {
       "key": "tenantId",
-      "value": "192de76d-44c8-4614-8584-cadce52e1fee",
+      "value": "",
       "enabled": true
     },
     {
@@ -23,33 +23,73 @@
       "enabled": true
     },
     {
+      "key": "superAdminAccessToken",
+      "value": "",
+      "enabled": true
+    },
+    {
       "key": "userId",
-      "value": "7c0212ab-cce3-482d-8660-dc92d43030e9",
+      "value": "",
       "enabled": true
     },
     {
-      "key": "locationId1",
-      "value": "6b36555a-b372-4638-b4cb-1d2fe9a1aafb",
+      "key": "productId",
+      "value": "",
       "enabled": true
     },
     {
-      "key": "locationId2",
-      "value": "6f4a307e-f57e-48f6-bba9-4f14c13e9fba",
+      "key": "locationId",
+      "value": "",
       "enabled": true
     },
     {
-      "key": "productId1",
-      "value": "db763b83-5753-4520-92ea-8351d9f3458c",
+      "key": "toLocationId",
+      "value": "",
       "enabled": true
     },
     {
-      "key": "productId2",
-      "value": "36b8abec-bec1-4dbc-8787-539ccb3da82b",
+      "key": "inventoryId",
+      "value": "",
+      "enabled": true
+    },
+    {
+      "key": "movementId",
+      "value": "",
+      "enabled": true
+    },
+    {
+      "key": "transferId",
+      "value": "",
       "enabled": true
     },
     {
       "key": "supplierId",
-      "value": "8809a874-aec7-4485-b33b-22e993e22ae9",
+      "value": "",
+      "enabled": true
+    },
+    {
+      "key": "purchaseOrderId",
+      "value": "",
+      "enabled": true
+    },
+    {
+      "key": "supplierReturnId",
+      "value": "",
+      "enabled": true
+    },
+    {
+      "key": "reorderPointId",
+      "value": "",
+      "enabled": true
+    },
+    {
+      "key": "notificationId",
+      "value": "",
+      "enabled": true
+    },
+    {
+      "key": "inviteToken",
+      "value": "",
       "enabled": true
     }
   ],
