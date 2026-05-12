@@ -20,10 +20,7 @@ export interface TokenPair {
 }
 
 export interface AuthenticatedRequest extends Request {
-  // @ts-expect-error user type conflicts with Express.Request but we need JWTPayload
-  user?: JWTPayload;
   tenantId?: string;
-  requestId?: string;
 }
 
 // Helper type for requests with ID param

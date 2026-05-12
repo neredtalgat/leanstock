@@ -1,8 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
 import helmet from 'helmet';
-import rateLimit from 'express-rate-limit';
+import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import { randomUUID } from 'crypto';
 import { logger } from '../config/logger';
+import { JWTPayload } from '../types';
 
 // Enhanced security headers configuration
 const securityHeaders = helmet({
@@ -92,14 +93,16 @@ const rateLimiter = rateLimit({
   message: 'Too many requests from this IP, please try again later.',
   standardHeaders: true, // Return rate limit info in headers
   legacyHeaders: false,
-  // @ts-expect-error express-rate-limit types
   keyGenerator: (req: Request) => {
     // Use IP + user ID for more granular rate limiting
-    return req.ip + ((req as Request & { user?: { id?: string } }).user?.id || 'anonymous');
+    return ipKeyGenerator(req.ip || 'unknown') + ':' + (req.user?.userId || 'anonymous');
   },
   skip: (req: Request) => {
     // Skip rate limiting for health checks
     return req.path === '/health' || req.path === '/api-docs';
+  },
+  validate: {
+    keyGeneratorIpFallback: false, // disable overzealous regex check on keyGenerator source
   },
 });
 
@@ -246,7 +249,7 @@ declare global {
     interface Request {
       requestId?: string;
       apiKey?: string;
-      user?: { id?: string };
+      user?: JWTPayload;
     }
   }
 }

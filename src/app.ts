@@ -2,7 +2,7 @@ import express, { Application } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
-import rateLimit from 'express-rate-limit';
+import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import swaggerUi from 'swagger-ui-express';
 import YAML from 'yamljs';
 import { randomUUID } from 'crypto';
@@ -113,10 +113,13 @@ export function createApp(): Application {
     legacyHeaders: false,
     standardHeaders: true,
     keyGenerator: (req) => {
-      return (req.ip || 'unknown') + ((req as AuthenticatedRequest).user?.userId || 'anonymous');
+      return ipKeyGenerator(req.ip || 'unknown') + ':' + ((req as AuthenticatedRequest).user?.userId || 'anonymous');
     },
     skip: (req) => {
       return req.path === '/health' || req.path === '/api-docs';
+    },
+    validate: {
+      keyGeneratorIpFallback: false,
     },
   } as any));
 
