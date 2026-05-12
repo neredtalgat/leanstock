@@ -6,37 +6,98 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('🌱 Seeding database...');
 
-  // Clear existing data
-  await prisma.auditLog.deleteMany();
-  await prisma.notification.deleteMany();
-  await prisma.priceHistory.deleteMany();
-  await prisma.deadStockRule.deleteMany();
-  await prisma.demandHistory.deleteMany();
-  await prisma.reorderPoint.deleteMany();
-  await prisma.purchaseOrderItem.deleteMany();
-  await prisma.purchaseOrder.deleteMany();
-  await prisma.supplierProduct.deleteMany();
-  await prisma.supplier.deleteMany();
-  await prisma.transferItem.deleteMany();
-  await prisma.transferOrder.deleteMany();
-  await prisma.inventoryMovement.deleteMany();
-  await prisma.inventory.deleteMany();
-  await prisma.productVariant.deleteMany();
-  await prisma.productImage.deleteMany();
-  await prisma.product.deleteMany();
-  await prisma.binLocation.deleteMany();
-  await prisma.location.deleteMany();
-  await prisma.apiKey.deleteMany();
-  await prisma.user.deleteMany();
-  await prisma.tenant.deleteMany();
+  // Check if already seeded
+  let tenant = await prisma.tenant.findFirst({ where: { name: 'Demo Tenant' } });
 
-  // Create tenant
-  const tenant = await prisma.tenant.create({
-    data: {
-      name: 'Demo Tenant',
-    },
+  if (tenant) {
+    console.log(`⏩ Tenant '${tenant.name}' already exists, checking users...`);
+
+    // Ensure super admin exists (idempotent)
+    const superAdmin = await prisma.user.findFirst({ where: { email: 'superadmin@leanstock.com' } });
+    if (!superAdmin) {
+      const superAdminHash = await bcrypt.hash('SuperAdmin123!', 12);
+      await prisma.user.create({
+        data: {
+          email: 'superadmin@leanstock.com',
+          passwordHash: superAdminHash,
+          firstName: 'Super',
+          lastName: 'Admin',
+          role: UserRole.SUPER_ADMIN,
+          tenantId: tenant.id,
+          isActive: true,
+          emailVerified: true,
+        },
+      });
+      console.log('✅ Created super admin: superadmin@leanstock.com');
+    } else {
+      console.log('⏩ Super admin already exists');
+    }
+
+    const adminUser = await prisma.user.findFirst({ where: { email: 'admin@demo.com', tenantId: tenant.id } });
+    if (!adminUser) {
+      const adminPasswordHash = await bcrypt.hash('Admin@123456', 12);
+      await prisma.user.create({
+        data: {
+          email: 'admin@demo.com',
+          passwordHash: adminPasswordHash,
+          firstName: 'Admin',
+          lastName: 'User',
+          role: UserRole.TENANT_ADMIN,
+          tenantId: tenant.id,
+          isActive: true,
+          emailVerified: true,
+        },
+      });
+      console.log('✅ Created admin user: admin@demo.com');
+    } else {
+      console.log('⏩ Admin user already exists');
+    }
+
+    const storeUser = await prisma.user.findFirst({ where: { email: 'store@demo.com', tenantId: tenant.id } });
+    if (!storeUser) {
+      const storePasswordHash = await bcrypt.hash('Store@123456', 12);
+      await prisma.user.create({
+        data: {
+          email: 'store@demo.com',
+          passwordHash: storePasswordHash,
+          firstName: 'Store',
+          lastName: 'Associate',
+          role: UserRole.STORE_ASSOCIATE,
+          tenantId: tenant.id,
+          isActive: true,
+          emailVerified: true,
+        },
+      });
+      console.log('✅ Created store user: store@demo.com');
+    } else {
+      console.log('⏩ Store user already exists');
+    }
+
+    console.log('✅ Seed check complete');
+    return;
+  }
+
+  // Fresh seed — create everything
+  tenant = await prisma.tenant.create({
+    data: { name: 'Demo Tenant' },
   });
   console.log(`✅ Created tenant: ${tenant.name}`);
+
+  // Create super admin
+  const superAdminHash = await bcrypt.hash('SuperAdmin123!', 12);
+  await prisma.user.create({
+    data: {
+      email: 'superadmin@leanstock.com',
+      passwordHash: superAdminHash,
+      firstName: 'Super',
+      lastName: 'Admin',
+      role: UserRole.SUPER_ADMIN,
+      tenantId: tenant.id,
+      isActive: true,
+      emailVerified: true,
+    },
+  });
+  console.log('✅ Created super admin: superadmin@leanstock.com');
 
   // Create admin user
   const adminPasswordHash = await bcrypt.hash('Admin@123456', 12);
@@ -49,6 +110,7 @@ async function main() {
       role: UserRole.TENANT_ADMIN,
       tenantId: tenant.id,
       isActive: true,
+      emailVerified: true,
     },
   });
   console.log(`✅ Created admin user: ${adminUser.email}`);
@@ -64,6 +126,7 @@ async function main() {
       role: UserRole.STORE_ASSOCIATE,
       tenantId: tenant.id,
       isActive: true,
+      emailVerified: true,
     },
   });
   console.log(`✅ Created store user: ${storeUser.email}`);
@@ -200,6 +263,9 @@ async function main() {
 }
 
 main()
+  .then(() => {
+    process.exit(0);
+  })
   .catch((e) => {
     console.error('❌ Seeding error:', e);
     process.exit(1);
