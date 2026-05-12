@@ -15,6 +15,8 @@ export const register = async (req: AuthenticatedRequest, res: Response): Promis
       firstName: user.firstName,
       lastName: user.lastName,
       role: user.role,
+      emailVerified: user.emailVerified,
+      message: 'Registration successful. Please check your email to verify your account.',
       createdAt: user.createdAt,
     });
   } catch (error: any) {
@@ -65,6 +67,15 @@ export const login = async (req: AuthenticatedRequest, res: Response): Promise<v
       res.status(401).json({
         code: 'INVALID_CREDENTIALS',
         message: 'Invalid email or password',
+        timestamp: new Date().toISOString(),
+      });
+      return;
+    }
+
+    if (error.message === 'EMAIL_NOT_VERIFIED') {
+      res.status(403).json({
+        code: 'EMAIL_NOT_VERIFIED',
+        message: 'Please verify your email before logging in',
         timestamp: new Date().toISOString(),
       });
       return;
@@ -144,64 +155,256 @@ export const logout = async (req: AuthenticatedRequest, res: Response): Promise<
   }
 };
 
-// TODO: Implement email verification
 export const verifyEmail = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const { token } = req.body;
+    
+    if (!token) {
+      res.status(400).json({ 
+        code: 'MISSING_TOKEN', 
+        message: 'Verification token is required' 
+      });
+      return;
+    }
+    
     await authService.verifyEmail(token);
-    res.status(200).json({ message: 'Email verified successfully' });
-  } catch (error) {
+    res.status(200).json({ message: 'Email verified successfully. You can now log in.' });
+  } catch (error: any) {
     logger.error({ err: error }, 'Email verification error');
-    res.status(400).json({ code: 'INVALID_TOKEN', message: 'Invalid or expired token' });
+    
+    if (error.message === 'INVALID_TOKEN') {
+      res.status(400).json({ 
+        code: 'INVALID_TOKEN', 
+        message: 'Invalid or expired verification token' 
+      });
+      return;
+    }
+    
+    res.status(500).json({ 
+      code: 'INTERNAL_ERROR', 
+      message: 'Failed to verify email' 
+    });
   }
 };
 
-// TODO: Implement password reset request
 export const requestPasswordReset = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const { email, tenantId } = req.body;
+    
+    if (!email || !tenantId) {
+      res.status(400).json({ 
+        code: 'MISSING_FIELDS', 
+        message: 'Email and tenantId are required' 
+      });
+      return;
+    }
+    
     await authService.requestPasswordReset(email, tenantId);
-    res.status(200).json({ message: 'Password reset email sent' });
+    // Always return success to prevent email enumeration
+    res.status(200).json({ 
+      message: 'If the email exists, a password reset link has been sent.' 
+    });
   } catch (error) {
     logger.error({ err: error }, 'Password reset request error');
-    res.status(200).json({ message: 'If email exists, reset link was sent' });
+    // Always return success
+    res.status(200).json({ 
+      message: 'If the email exists, a password reset link has been sent.' 
+    });
   }
 };
 
-// TODO: Implement password reset
 export const resetPassword = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const { token, newPassword, tenantId } = req.body;
+    
+    if (!token || !newPassword || !tenantId) {
+      res.status(400).json({ 
+        code: 'MISSING_FIELDS', 
+        message: 'Token, newPassword, and tenantId are required' 
+      });
+      return;
+    }
+    
     await authService.resetPassword(token, newPassword, tenantId);
-    res.status(200).json({ message: 'Password reset successfully' });
-  } catch (error) {
+    res.status(200).json({ message: 'Password reset successfully. You can now log in with your new password.' });
+  } catch (error: any) {
     logger.error({ err: error }, 'Password reset error');
-    res.status(400).json({ code: 'INVALID_TOKEN', message: 'Invalid or expired token' });
+    
+    if (error.message === 'INVALID_TOKEN') {
+      res.status(400).json({ 
+        code: 'INVALID_TOKEN', 
+        message: 'Invalid or expired reset token' 
+      });
+      return;
+    }
+    
+    res.status(500).json({ 
+      code: 'INTERNAL_ERROR', 
+      message: 'Failed to reset password' 
+    });
   }
 };
 
-// TODO: Implement change password
 export const changePassword = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const userId = req.user!.userId;
     const { currentPassword, newPassword } = req.body;
+    
+    if (!currentPassword || !newPassword) {
+      res.status(400).json({ 
+        code: 'MISSING_FIELDS', 
+        message: 'Current password and new password are required' 
+      });
+      return;
+    }
+    
     await authService.changePassword(userId, currentPassword, newPassword);
     res.status(200).json({ message: 'Password changed successfully' });
-  } catch (error) {
+  } catch (error: any) {
     logger.error({ err: error }, 'Change password error');
-    res.status(400).json({ code: 'INVALID_PASSWORD', message: 'Current password is incorrect' });
+    
+    if (error.message === 'INVALID_PASSWORD') {
+      res.status(400).json({ 
+        code: 'INVALID_PASSWORD', 
+        message: 'Current password is incorrect' 
+      });
+      return;
+    }
+    
+    if (error.message === 'USER_NOT_FOUND') {
+      res.status(404).json({ 
+        code: 'USER_NOT_FOUND', 
+        message: 'User not found' 
+      });
+      return;
+    }
+    
+    res.status(500).json({ 
+      code: 'INTERNAL_ERROR', 
+      message: 'Failed to change password' 
+    });
   }
 };
 
-// TODO: Implement resend verification email
 export const resendVerificationEmail = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const { email, tenantId } = req.body;
-    // TODO: Implement logic
-    logger.info({ email, tenantId }, 'Resend verification email requested');
-    res.status(200).json({ message: 'If email exists, verification email was sent' });
+    
+    if (!email || !tenantId) {
+      res.status(400).json({ 
+        code: 'MISSING_FIELDS', 
+        message: 'Email and tenantId are required' 
+      });
+      return;
+    }
+    
+    await authService.resendVerificationEmail(email, tenantId);
+    // Always return success to prevent email enumeration
+    res.status(200).json({ 
+      message: 'If the email exists and is not verified, a verification email has been sent.' 
+    });
   } catch (error) {
     logger.error({ err: error }, 'Resend verification email error');
-    res.status(200).json({ message: 'If email exists, verification email was sent' });
+    // Always return success
+    res.status(200).json({ 
+      message: 'If the email exists and is not verified, a verification email has been sent.' 
+    });
+  }
+};
+
+export const inviteUser = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const { email, role } = req.body;
+    const invitedBy = req.user!;
+
+    const token = await authService.createInvitation(invitedBy, email, role);
+
+    res.status(201).json({
+      inviteToken: token,
+      inviteLink: `http://localhost:3000/auth/register-invite?token=${token}`,
+      message: 'Invitation created successfully',
+    });
+  } catch (error: any) {
+    logger.error({ err: error }, 'Invite user error');
+
+    if (error.message === 'TENANT_NOT_FOUND') {
+      res.status(404).json({
+        code: 'TENANT_NOT_FOUND',
+        message: 'Tenant not found',
+        timestamp: new Date().toISOString(),
+      });
+      return;
+    }
+
+    if (error.message === 'EMAIL_EXISTS') {
+      res.status(409).json({
+        code: 'EMAIL_EXISTS',
+        message: 'Email already registered in this tenant',
+        timestamp: new Date().toISOString(),
+      });
+      return;
+    }
+
+    res.status(500).json({
+      code: 'INTERNAL_ERROR',
+      message: 'Failed to create invitation',
+      timestamp: new Date().toISOString(),
+    });
+  }
+};
+
+export const registerByInvite = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const { token, password, firstName, lastName } = req.body;
+
+    const { user, tokens } = await authService.acceptInvitation(token, password, firstName, lastName);
+
+    res.status(201).json({
+      id: user.id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      role: user.role,
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
+      expiresIn: tokens.expiresIn,
+      message: 'Registration successful. You are now logged in.',
+      createdAt: user.createdAt,
+    });
+  } catch (error: any) {
+    logger.error({ err: error }, 'Register by invite error');
+
+    if (error.message === 'INVALID_INVITE_TOKEN') {
+      res.status(400).json({
+        code: 'INVALID_INVITE_TOKEN',
+        message: 'Invalid or expired invitation token',
+        timestamp: new Date().toISOString(),
+      });
+      return;
+    }
+
+    if (error.message === 'TENANT_NOT_FOUND') {
+      res.status(404).json({
+        code: 'TENANT_NOT_FOUND',
+        message: 'Tenant not found',
+        timestamp: new Date().toISOString(),
+      });
+      return;
+    }
+
+    if (error.message === 'EMAIL_EXISTS') {
+      res.status(409).json({
+        code: 'EMAIL_EXISTS',
+        message: 'Email already registered',
+        timestamp: new Date().toISOString(),
+      });
+      return;
+    }
+
+    res.status(500).json({
+      code: 'INTERNAL_ERROR',
+      message: 'Registration failed',
+      timestamp: new Date().toISOString(),
+    });
   }
 };

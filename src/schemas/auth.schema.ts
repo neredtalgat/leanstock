@@ -34,7 +34,27 @@ export const updateUserSchema = z.object({
   isActive: z.boolean().optional(),
 });
 
+export const inviteSchema = z.object({
+  email: z.string().email('Invalid email address'),
+  role: z.nativeEnum(UserRole),
+});
+
+export const registerInviteSchema = z.object({
+  token: z.string().min(20, 'Invalid invite token'),
+  password: z
+    .string()
+    .min(8, 'Password must be at least 8 characters')
+    .max(128, 'Password must be less than 128 characters')
+    .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
+    .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
+    .regex(/[0-9]/, 'Password must contain at least one number'),
+  firstName: z.string().min(1, 'First name is required').optional(),
+  lastName: z.string().min(1, 'Last name is required').optional(),
+});
+
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
 export type RefreshInput = z.infer<typeof refreshSchema>;
 export type UpdateUserInput = z.infer<typeof updateUserSchema>;
+export type InviteInput = z.infer<typeof inviteSchema>;
+export type RegisterInviteInput = z.infer<typeof registerInviteSchema>;
