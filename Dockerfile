@@ -1,22 +1,33 @@
-FROM node:20-slim
+FROM node:20
 
 WORKDIR /app
 
-# Install OpenSSL and ca-certificates for Prisma
-RUN apt-get update && apt-get install -y openssl ca-certificates && rm -rf /var/lib/apt/lists/*
+# Install dependencies for Prisma
+RUN apt-get update && apt-get install -y \
+    openssl \
+    ca-certificates \
+    netcat-traditional \
+    && rm -rf /var/lib/apt/lists/*
 
 # Copy package files
 COPY package*.json ./
-COPY prisma ./prisma/
 
-# Install dependencies and generate Prisma client
-RUN npm ci && npx prisma generate
+# Install dependencies
+RUN npm ci
+
+# Copy prisma schema and migrations
+COPY prisma/schema.prisma ./prisma/
+COPY prisma/migrations ./prisma/migrations/
+
+# Generate Prisma client
+RUN npx prisma generate
 
 # Copy source code
 COPY . .
 
 # Build TypeScript
-RUN npm run build
+RUN npx tsc --build --force
+RUN ls -la dist/ || (echo "Build failed" && exit 1)
 
 # Copy and set permissions for entrypoint script
 COPY entrypoint.sh /entrypoint.sh
