@@ -19,7 +19,8 @@ export interface TokenPair {
   expiresIn: string;
 }
 
-export interface AuthenticatedRequest extends Request {
+export interface AuthenticatedRequest extends Omit<Request, 'user'> {
+  user?: JWTPayload;
   tenantId?: string;
 }
 
