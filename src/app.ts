@@ -105,23 +105,25 @@ export function createApp(): Application {
     maxAge: 86400,
   }));
 
-  // Rate limiting
-  app.use(rateLimit({
-    windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000'),
-    max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100'),
-    message: 'Too many requests from this IP, please try again later.',
-    legacyHeaders: false,
-    standardHeaders: true,
-    keyGenerator: (req) => {
-      return ipKeyGenerator(req.ip || 'unknown') + ':' + ((req as AuthenticatedRequest).user?.userId || 'anonymous');
-    },
-    skip: (req) => {
-      return req.path === '/health' || req.path === '/api-docs';
-    },
-    validate: {
-      keyGeneratorIpFallback: false,
-    },
-  } as any));
+  // Rate limiting (disabled in dev if DISABLE_RATE_LIMIT=true)
+  if (process.env.DISABLE_RATE_LIMIT !== 'true') {
+    app.use(rateLimit({
+      windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000'),
+      max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100'),
+      message: 'Too many requests from this IP, please try again later.',
+      legacyHeaders: false,
+      standardHeaders: true,
+      keyGenerator: (req) => {
+        return ipKeyGenerator(req.ip || 'unknown') + ':' + ((req as AuthenticatedRequest).user?.userId || 'anonymous');
+      },
+      skip: (req) => {
+        return req.path === '/health' || req.path === '/api-docs';
+      },
+      validate: {
+        keyGeneratorIpFallback: false,
+      },
+    } as any));
+  }
 
   // Body parsing middleware
   app.use(express.json({ limit: '10mb' }));

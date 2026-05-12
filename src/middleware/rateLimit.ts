@@ -89,12 +89,16 @@ export const createRateLimit = (prefix: string, options: RateLimitOptions = {}) 
   };
 };
 
-export const authRateLimit = createRateLimit('auth', {
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  maxRequests: 5,
-});
+export const authRateLimit = process.env.DISABLE_RATE_LIMIT === 'true'
+  ? (_req: AuthenticatedRequest, _res: Response, next: NextFunction) => next()
+  : createRateLimit('auth', {
+      windowMs: 15 * 60 * 1000, // 15 minutes
+      maxRequests: 5,
+    });
 
-export const apiRateLimit = createRateLimit('api', {
-  windowMs: 60 * 1000, // 1 minute
-  maxRequests: 60,
-});
+export const apiRateLimit = process.env.DISABLE_RATE_LIMIT === 'true'
+  ? (_req: AuthenticatedRequest, _res: Response, next: NextFunction) => next()
+  : createRateLimit('api', {
+      windowMs: 60 * 1000, // 1 minute
+      maxRequests: 60,
+    });
