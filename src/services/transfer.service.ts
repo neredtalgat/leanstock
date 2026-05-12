@@ -4,6 +4,7 @@ import { tenantDb } from '../config/database';
 import { logger } from '../config/logger';
 import { env } from '../config/env';
 import { CreateTransferInput, ReceiveItemInput, ShipTransferInput, ApproveTransferInput } from '../schemas/transfer.schema';
+import { notificationService } from './notification.service';
 
 export interface TransferOrder {
   id: string;
@@ -45,28 +46,34 @@ class TransferService {
             throw new Error('INVALID_LOCATION');
           }
 
-          // 3. For each item: check availability with SELECT FOR UPDATE
+          const fromLocation = locations.find((l: any) => l.id === data.fromLocationId);
+          const toLocation = locations.find((l: any) => l.id === data.toLocationId);
+
+          // 3. Get user info for notification
+          const creator = await tx.user.findUnique({
+            where: { id: userId },
+            select: { firstName: true, lastName: true, email: true },
+          });
+          const creatorName = creator ? `${creator.firstName || ''} ${creator.lastName || ''}`.trim() || creator.email : 'Unknown';
+
+          // 4. For each item: check availability with SELECT FOR UPDATE
           let totalValue = 0;
           const transferItems = [];
 
           for (const item of data.items) {
-            // SELECT FOR UPDATE to lock inventory row - prevents concurrent modifications
-            const inventory = await tx.$queryRaw`
-              SELECT * FROM inventory 
-              WHERE "productId" = ${item.productId} 
-                AND "locationId" = ${data.fromLocationId}
-                AND "tenantId" = ${tenantId}
-              FOR UPDATE
-            `;
-
-            const inventoryRows = inventory as Array<{ quantity: number; reservedQuantity: number }>;
-            if (!inventory || inventoryRows.length === 0) {
+            const inv = await tx.inventory.findFirst({
+              where: {
+                productId: item.productId,
+                locationId: data.fromLocationId,
+                tenantId,
+              },
+            });
+            if (!inv) {
               throw new Error(`PRODUCT_NOT_IN_LOCATION:${item.productId}`);
             }
 
-            const inv = inventoryRows[0];
-            const quantity = Number(inv.quantity);
-            const reservedQuantity = Number(inv.reservedQuantity);
+            const quantity = inv.quantity;
+            const reservedQuantity = inv.reservedQuantity;
             const available = quantity - reservedQuantity;
             if (available < item.quantity) {
               throw new Error(`INSUFFICIENT_STOCK:${item.productId}`);
@@ -90,11 +97,11 @@ class TransferService {
             });
           }
 
-          // 4. Determine if approval required (value > threshold)
+          // 5. Determine if approval required (value > threshold)
           const requiresApproval = totalValue > env.TRANSFER_APPROVAL_THRESHOLD;
           const status = requiresApproval ? 'PENDING_APPROVAL' : 'DRAFT';
 
-          // 5. Create TransferOrder
+          // 6. Create TransferOrder
           const transfer = await tx.transferOrder.create({
             data: {
               tenantId,
@@ -114,7 +121,20 @@ class TransferService {
             },
           });
 
-          logger.info(`Transfer created: ${transfer.id} in tenant ${tenantId}`);
+          // 7. Send email notification if approval required
+          if (requiresApproval) {
+            await notificationService.notifyTransferApprovalRequired(
+              tenantId,
+              transfer.id,
+              fromLocation?.name || 'Unknown',
+              toLocation?.name || 'Unknown',
+              totalValue,
+              transferItems.length,
+              creatorName
+            );
+          }
+
+          logger.info(`Transfer created: ${transfer.id} in tenant ${tenantId}, requiresApproval: ${requiresApproval}`);
           return transfer as TransferOrder;
         },
         {
