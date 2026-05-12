@@ -22,6 +22,7 @@ export interface TokenPair {
 export interface AuthenticatedRequest extends Omit<Request, 'user'> {
   user?: JWTPayload;
   tenantId?: string;
+  requestId?: string;
 }
 
 // Helper type for requests with ID param
