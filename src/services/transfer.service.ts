@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Prisma } from '@prisma/client';
-import { tenantDb } from '../config/database';
+import { tenantDb, asyncLocalStorage } from '../config/database';
 import { logger } from '../config/logger';
 import { env } from '../config/env';
 import { CreateTransferInput, ReceiveItemInput, ShipTransferInput, ApproveTransferInput } from '../schemas/transfer.schema';
@@ -50,8 +50,8 @@ class TransferService {
           const toLocation = locations.find((l: any) => l.id === data.toLocationId);
 
           // 3. Get user info for notification
-          const creator = await tx.user.findUnique({
-            where: { id: userId },
+          const creator = await tx.user.findFirst({
+            where: { id: userId, tenantId },
             select: { firstName: true, lastName: true, email: true },
           });
           const creatorName = creator ? `${creator.firstName || ''} ${creator.lastName || ''}`.trim() || creator.email : 'Unknown';
@@ -80,8 +80,8 @@ class TransferService {
             }
 
             // Get product for value calculation
-            const product = await tx.product.findUnique({
-              where: { id: item.productId },
+            const product = await tx.product.findFirst({
+              where: { id: item.productId, tenantId },
               select: { retailPrice: true },
             });
 
@@ -99,7 +99,7 @@ class TransferService {
 
           // 5. Determine if approval required (value > threshold)
           const requiresApproval = totalValue > env.TRANSFER_APPROVAL_THRESHOLD;
-          const status = requiresApproval ? 'PENDING_APPROVAL' : 'DRAFT';
+          const status = requiresApproval ? 'PENDING_APPROVAL' : 'APPROVED';
 
           // 6. Create TransferOrder
           const transfer = await tx.transferOrder.create({
@@ -232,12 +232,6 @@ class TransferService {
             inTransit: { increment: item.quantity },
           },
         });
-
-        // Update TransferItem
-        await tx.transferItem.update({
-          where: { id: item.id },
-          data: { quantityShipped: item.quantity },
-        });
       }
 
       const updated = await tx.transferOrder.update({
@@ -253,6 +247,17 @@ class TransferService {
 
       logger.info(`Transfer shipped: ${transferId}`);
       return updated as TransferOrder;
+    }).then(async (updated) => {
+      // Update TransferItem outside transaction (no tenantId field on model)
+      for (const item of transfer.items) {
+        await asyncLocalStorage.run({ isSuperAdmin: true }, async () => {
+          await tenantDb.transferItem.update({
+            where: { id: item.id },
+            data: { quantityShipped: item.quantity },
+          });
+        });
+      }
+      return updated;
     });
   }
 
@@ -310,12 +315,6 @@ class TransferService {
           },
         });
 
-        // Update TransferItem
-        await tx.transferItem.update({
-          where: { id: transferItem.id },
-          data: { receivedQuantity: receivedItem.quantityReceived },
-        });
-
         if (receivedItem.quantityReceived < transferItem.quantity) {
           allReceived = false;
         }
@@ -334,7 +333,32 @@ class TransferService {
 
       logger.info(`Transfer received: ${transferId}, status: ${status}`);
       return updated as TransferOrder;
+    }).then(async (updated) => {
+      // Update TransferItem outside transaction (no tenantId field on model)
+      for (const receivedItem of items) {
+        const transferItem = transfer.items.find((ti) => ti.productId === receivedItem.productId);
+        if (transferItem) {
+          await asyncLocalStorage.run({ isSuperAdmin: true }, async () => {
+            await tenantDb.transferItem.update({
+              where: { id: transferItem.id },
+              data: { receivedQuantity: receivedItem.quantityReceived },
+            });
+          });
+        }
+      }
+      return updated;
     });
+  }
+
+  /**
+   * Get transfer by ID
+   */
+  async getById(transferId: string, tenantId: string): Promise<TransferOrder | null> {
+    const transfer = await tenantDb.transferOrder.findFirst({
+      where: { id: transferId, tenantId },
+      include: { items: true },
+    });
+    return transfer as TransferOrder | null;
   }
 
   /**

@@ -26,6 +26,17 @@ router.get(
 );
 
 /**
+ * GET /transfers/:id
+ * Get transfer by ID
+ */
+router.get(
+  '/:id',
+  authenticate,
+  injectTenant,
+  transferController.getTransfer,
+);
+
+/**
  * POST /transfers
  * Create a new transfer (atomic with SELECT FOR UPDATE)
  */

@@ -31,6 +31,15 @@ export const register = async (req: AuthenticatedRequest, res: Response): Promis
       return;
     }
 
+    if (error.message === 'INVITE_ROLE_FORBIDDEN') {
+      res.status(403).json({
+        code: 'INVITE_ROLE_FORBIDDEN',
+        message: 'You cannot invite this role',
+        timestamp: new Date().toISOString(),
+      });
+      return;
+    }
+
     if (error.message === 'TENANT_NOT_FOUND') {
       res.status(404).json({
         code: 'TENANT_NOT_FOUND',

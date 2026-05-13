@@ -49,6 +49,23 @@ export const createTransfer = async (req: AuthenticatedRequest, res: Response): 
   }
 };
 
+export const getTransfer = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const tenantId = req.tenantId!;
+
+    const transfer = await transferService.getById(id, tenantId);
+    if (!transfer) {
+      res.status(404).json({ code: 'NOT_FOUND', message: 'Transfer not found' });
+      return;
+    }
+    res.status(200).json(transfer);
+  } catch (error) {
+    logger.error({ err: error }, 'Get transfer error');
+    res.status(500).json({ code: 'INTERNAL_ERROR', message: 'Internal server error' });
+  }
+};
+
 export const listTransfers = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const tenantId = req.tenantId!;

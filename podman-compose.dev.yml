@@ -1,0 +1,66 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: leanstock-postgres
+    environment:
+      POSTGRES_USER: leanstock
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: leanstock
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U leanstock']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: leanstock-redis
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: leanstock-app
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: development  # <-- DEV режим
+      PORT: 3000
+      DATABASE_URL: postgresql://leanstock:password@postgres:5432/leanstock
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: dev-secret-key
+      JWT_EXPIRES_IN: 15m
+      JWT_REFRESH_EXPIRES_IN: 7d
+      BCRYPT_ROUNDS: 12
+      LOG_LEVEL: debug
+      SEED_DATABASE: "true"
+    volumes:
+      # Hot-reload: код изменяется без пересборки!
+      - ./src:/app/src
+      - ./prisma:/app/prisma
+      - /app/node_modules  # исключаем node_modules хоста
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: ["npm", "run", "dev"]  # <-- nodemon вместо node
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+
+networks:
+  default:
+    name: leanstock-network

@@ -44,89 +44,116 @@ export function getPrisma(): PrismaClient {
 
 export const db = getPrisma();
 
+// Models that have a tenantId column (tenant isolation applies)
+const TENANT_MODELS = [
+  'user',
+  'location',
+  'product',
+  'inventory',
+  'inventoryMovement',
+  'transferOrder',
+  'supplier',
+  'purchaseOrder',
+  'supplierReturn',
+  'reorderPoint',
+  'demandHistory',
+  'deadStockRule',
+  'priceHistory',
+  'notification',
+  'auditLog',
+  'systemSetting',
+];
+
+function withTenant(model: string) {
+  return {
+    async create({ args, query }: { args: any; query: any }) {
+      const store = asyncLocalStorage.getStore();
+      if (store?.tenantId && !store?.isSuperAdmin) {
+        const mutableArgs = args as any;
+        mutableArgs.data = { ...mutableArgs.data, tenantId: store.tenantId };
+      }
+      return query(args);
+    },
+    async createMany({ args, query }: { args: any; query: any }) {
+      const store = asyncLocalStorage.getStore();
+      if (store?.tenantId && !store?.isSuperAdmin) {
+        const mutableArgs = args as any;
+        if (Array.isArray(mutableArgs.data)) {
+          mutableArgs.data = mutableArgs.data.map((item: any) => ({ ...item, tenantId: store.tenantId }));
+        } else {
+          mutableArgs.data = { ...mutableArgs.data, tenantId: store.tenantId };
+        }
+      }
+      return query(args);
+    },
+    async findMany({ args, query }: { args: any; query: any }) {
+      const store = asyncLocalStorage.getStore();
+      if (store?.tenantId && !store?.isSuperAdmin) {
+        args.where = { ...args.where, tenantId: store.tenantId };
+      }
+      return query(args);
+    },
+    async findUnique({ args, query }: { args: any; query: any }) {
+      const store = asyncLocalStorage.getStore();
+      if (store?.tenantId && !store?.isSuperAdmin) {
+        throw new Error('UNSAFE_FIND_UNIQUE_IN_TENANT_CONTEXT');
+      }
+      return query(args);
+    },
+    async findFirst({ args, query }: { args: any; query: any }) {
+      const store = asyncLocalStorage.getStore();
+      if (store?.tenantId && !store?.isSuperAdmin) {
+        args.where = { ...args.where, tenantId: store.tenantId };
+      }
+      return query(args);
+    },
+    async update({ args, query }: { args: any; query: any }) {
+      const store = asyncLocalStorage.getStore();
+      if (store?.tenantId && !store?.isSuperAdmin) {
+        args.where = { ...args.where, tenantId: store.tenantId };
+      }
+      return query(args);
+    },
+    async updateMany({ args, query }: { args: any; query: any }) {
+      const store = asyncLocalStorage.getStore();
+      if (store?.tenantId && !store?.isSuperAdmin) {
+        args.where = { ...args.where, tenantId: store.tenantId };
+      }
+      return query(args);
+    },
+    async delete({ args, query }: { args: any; query: any }) {
+      const store = asyncLocalStorage.getStore();
+      if (store?.tenantId && !store?.isSuperAdmin) {
+        throw new Error('UNSAFE_DELETE_IN_TENANT_CONTEXT');
+      }
+      return query(args);
+    },
+    async deleteMany({ args, query }: { args: any; query: any }) {
+      const store = asyncLocalStorage.getStore();
+      if (store?.tenantId && !store?.isSuperAdmin) {
+        args.where = { ...args.where, tenantId: store.tenantId };
+      }
+      return query(args);
+    },
+    async count({ args, query }: { args: any; query: any }) {
+      const store = asyncLocalStorage.getStore();
+      if (store?.tenantId && !store?.isSuperAdmin) {
+        args.where = { ...args.where, tenantId: store.tenantId };
+      }
+      return query(args);
+    },
+  };
+}
+
 // Extend Prisma Client to add tenant isolation
 export const createTenantAwareDb = () => {
+  const queryExtension: any = {};
+  for (const model of TENANT_MODELS) {
+    queryExtension[model] = withTenant(model);
+  }
+
   const prisma = db.$extends({
-    query: {
-      $allModels: {
-        async create({ args, query }) {
-          const store = asyncLocalStorage.getStore();
-          if (store?.tenantId && !store?.isSuperAdmin) {
-            const mutableArgs = args as any;
-            mutableArgs.data = { ...mutableArgs.data, tenantId: store.tenantId };
-          }
-          return query(args);
-        },
-        async createMany({ args, query }) {
-          const store = asyncLocalStorage.getStore();
-          if (store?.tenantId && !store?.isSuperAdmin) {
-            const mutableArgs = args as any;
-            if (Array.isArray(mutableArgs.data)) {
-              mutableArgs.data = mutableArgs.data.map((item: any) => ({ ...item, tenantId: store.tenantId }));
-            } else {
-              mutableArgs.data = { ...mutableArgs.data, tenantId: store.tenantId };
-            }
-          }
-          return query(args);
-        },
-        async findMany({ args, query }) {
-          const store = asyncLocalStorage.getStore();
-          if (store?.tenantId && !store?.isSuperAdmin) {
-            args.where = { ...args.where, tenantId: store.tenantId };
-          }
-          return query(args);
-        },
-        async findUnique({ args, query }) {
-          const store = asyncLocalStorage.getStore();
-          if (store?.tenantId && !store?.isSuperAdmin) {
-            throw new Error('UNSAFE_FIND_UNIQUE_IN_TENANT_CONTEXT');
-          }
-          return query(args);
-        },
-        async findFirst({ args, query }) {
-          const store = asyncLocalStorage.getStore();
-          if (store?.tenantId && !store?.isSuperAdmin) {
-            args.where = { ...args.where, tenantId: store.tenantId };
-          }
-          return query(args);
-        },
-        async update({ args, query }) {
-          const store = asyncLocalStorage.getStore();
-          if (store?.tenantId && !store?.isSuperAdmin) {
-            args.where = { ...args.where, tenantId: store.tenantId };
-          }
-          return query(args);
-        },
-        async updateMany({ args, query }) {
-          const store = asyncLocalStorage.getStore();
-          if (store?.tenantId && !store?.isSuperAdmin) {
-            args.where = { ...args.where, tenantId: store.tenantId };
-          }
-          return query(args);
-        },
-        async delete({ args, query }) {
-          const store = asyncLocalStorage.getStore();
-          if (store?.tenantId && !store?.isSuperAdmin) {
-            throw new Error('UNSAFE_DELETE_IN_TENANT_CONTEXT');
-          }
-          return query(args);
-        },
-        async deleteMany({ args, query }) {
-          const store = asyncLocalStorage.getStore();
-          if (store?.tenantId && !store?.isSuperAdmin) {
-            args.where = { ...args.where, tenantId: store.tenantId };
-          }
-          return query(args);
-        },
-        async count({ args, query }) {
-          const store = asyncLocalStorage.getStore();
-          if (store?.tenantId && !store?.isSuperAdmin) {
-            args.where = { ...args.where, tenantId: store.tenantId };
-          }
-          return query(args);
-        },
-      },
-    },
+    query: queryExtension,
   });
 
   return prisma;

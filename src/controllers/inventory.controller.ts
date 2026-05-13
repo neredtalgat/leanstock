@@ -79,8 +79,26 @@ export const createInventory = async (req: AuthenticatedRequest, res: Response):
     });
 
     res.status(201).json(created);
-  } catch (error) {
+  } catch (error: any) {
     logger.error({ err: error }, 'Create inventory error');
+
+    if (error.message === 'PRODUCT_NOT_FOUND') {
+      res.status(404).json({ code: 'PRODUCT_NOT_FOUND', message: 'Product not found' });
+      return;
+    }
+    if (error.message === 'LOCATION_NOT_FOUND') {
+      res.status(404).json({ code: 'LOCATION_NOT_FOUND', message: 'Location not found' });
+      return;
+    }
+    if (error.code === 'P2002') {
+      res.status(409).json({ code: 'DUPLICATE_INVENTORY', message: 'Inventory record already exists for this product and location' });
+      return;
+    }
+    if (error.code === 'P2003') {
+      res.status(400).json({ code: 'INVALID_REFERENCE', message: 'Invalid productId or locationId' });
+      return;
+    }
+
     res.status(500).json({ code: 'INTERNAL_ERROR', message: 'Internal server error' });
   }
 };

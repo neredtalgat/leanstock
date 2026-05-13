@@ -11,6 +11,22 @@ import { RegisterInput, LoginInput } from '../schemas/auth.schema';
 import { emailService } from './email.service';
 
 export class AuthService {
+  private canInviteRole(inviterRole: UserRole, targetRole: UserRole): boolean {
+    if (targetRole === UserRole.SUPER_ADMIN) {
+      return false;
+    }
+
+    const hierarchy: Record<UserRole, number> = {
+      [UserRole.SUPER_ADMIN]: 100,
+      [UserRole.TENANT_ADMIN]: 90,
+      [UserRole.REGIONAL_MANAGER]: 70,
+      [UserRole.STORE_MANAGER]: 50,
+      [UserRole.STORE_ASSOCIATE]: 30,
+      [UserRole.SUPPLIER]: 10,
+    };
+
+    return hierarchy[targetRole] <= hierarchy[inviterRole];
+  }
   async register(data: RegisterInput, tenantId: string): Promise<any> {
     try {
       const tenant = await tenantDb.tenant.findFirst({
@@ -329,6 +345,10 @@ export class AuthService {
 
   async createInvitation(invitedBy: JWTPayload, email: string, role: UserRole): Promise<string> {
     const tenantId = invitedBy.tenantId;
+
+    if (!this.canInviteRole(invitedBy.role, role)) {
+      throw new Error('INVITE_ROLE_FORBIDDEN');
+    }
 
     const tenant = await tenantDb.tenant.findFirst({
       where: { id: tenantId },

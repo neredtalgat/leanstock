@@ -139,15 +139,9 @@ class InventoryService {
       data: {
         tenantId,
         inventoryId: inventory.id,
-        type: delta >= 0 ? 'ADJUSTMENT' : 'ADJUSTMENT',
+        type: 'ADJUSTMENT',
         quantity: Math.abs(delta),
-        reason: input.reason,
-        userId,
-        metadata: {
-          oldQuantity,
-          newQuantity,
-          delta,
-        },
+        notes: input.reason,
       },
     });
 
@@ -157,10 +151,14 @@ class InventoryService {
         tenantId,
         userId,
         action: 'INVENTORY_ADJUST',
-        entityType: 'Inventory',
-        entityId: inventory.id,
-        oldValues: { quantity: oldQuantity },
-        newValues: { quantity: newQuantity, reason: input.reason },
+        resource: 'Inventory',
+        resourceId: inventory.id,
+        changes: JSON.stringify({
+          oldQuantity,
+          newQuantity,
+          delta,
+          reason: input.reason,
+        }),
       },
     });
 
@@ -187,6 +185,22 @@ class InventoryService {
   }
 
   async create(tenantId: string, input: CreateInventoryInput) {
+    const product = await (tenantDb as any).product.findFirst({
+      where: { id: input.productId, tenantId },
+      select: { id: true },
+    });
+    if (!product) {
+      throw new Error('PRODUCT_NOT_FOUND');
+    }
+
+    const location = await (tenantDb as any).location.findFirst({
+      where: { id: input.locationId, tenantId },
+      select: { id: true },
+    });
+    if (!location) {
+      throw new Error('LOCATION_NOT_FOUND');
+    }
+
     const created = await (tenantDb as any).inventory.create({
       data: {
         tenantId,

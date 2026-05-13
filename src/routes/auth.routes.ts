@@ -11,14 +11,15 @@ const router = Router();
 
 /**
  * POST /auth/register
- * Register a new user
+ * Public registration is disabled for employee-only system.
  */
-router.post(
-  '/register',
-  authRateLimit,
-  validate(registerSchema),
-  authController.register,
-);
+router.post('/register', (_req, res) => {
+  res.status(403).json({
+    code: 'REGISTRATION_DISABLED',
+    message: 'Public registration is disabled. Please use invitation flow.',
+    timestamp: new Date().toISOString(),
+  });
+});
 
 /**
  * POST /auth/login

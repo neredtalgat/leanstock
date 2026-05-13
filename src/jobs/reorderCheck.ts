@@ -3,9 +3,16 @@ import { Inventory, Prisma, Product, ReorderPoint } from '@prisma/client';
 import { redis } from '../config/redis';
 import { logger } from '../config/logger';
 import { db } from '../config/database';
+import { notificationService } from '../services/notification.service';
 
 // Queue for reorder checks
-const reorderQueue = new Queue('reorder-checks', { connection: redis });
+const reorderQueue = new Queue('reorder-checks', { 
+  connection: redis,
+  defaultJobOptions: {
+    removeOnComplete: 100,
+    removeOnFail: 50,
+  },
+});
 
 interface ReorderCheckJob {
   tenantId?: string;
@@ -53,14 +60,6 @@ worker.on('failed', (job, err) => {
 });
 
 /**
- * Close worker gracefully
- */
-export async function closeReorderWorker(): Promise<void> {
-  await worker.close();
-  await reorderQueue.close();
-}
-
-/**
  * Check all tenants for reorder points
  */
 async function checkAllTenants(): Promise<void> {
@@ -68,6 +67,8 @@ async function checkAllTenants(): Promise<void> {
     const tenants = await db.tenant.findMany({
       select: { id: true, name: true },
     });
+
+    logger.info(`Checking reorder points for ${tenants.length} tenants`);
 
     for (const tenant of tenants) {
       await checkTenant(tenant.id);
@@ -83,7 +84,7 @@ async function checkAllTenants(): Promise<void> {
  */
 async function checkTenant(tenantId: string): Promise<void> {
   try {
-    // Find all inventory items
+    // Find all inventory items with product and location info
     const inventoryItems = await db.inventory.findMany({
       where: { tenantId },
       include: {
@@ -102,6 +103,8 @@ async function checkTenant(tenantId: string): Promise<void> {
       reorderPoints.map((rp) => [`${rp.productId}_${rp.locationId}`, rp]),
     );
 
+    let lowStockCount = 0;
+
     for (const item of inventoryItems) {
       const key = `${item.productId}_${item.locationId}`;
       const reorderPoint = reorderPointMap.get(key);
@@ -111,6 +114,8 @@ async function checkTenant(tenantId: string): Promise<void> {
       const availableStock = item.quantity - item.reservedQuantity;
 
       if (availableStock <= reorderPoint.minQuantity) {
+        lowStockCount++;
+
         // Check if there's already an open PO for this product
         const existingPO = await db.purchaseOrder.findFirst({
           where: {
@@ -123,23 +128,31 @@ async function checkTenant(tenantId: string): Promise<void> {
         });
 
         if (!existingPO) {
-          // Create notification for low stock
           const recommendedQuantity = reorderPoint.maxQuantity - availableStock;
 
-          await db.notification.create({
-            data: {
-              tenantId,
-              type: 'LOW_STOCK',
-              message: `Low stock alert: ${item.product.name} at ${item.location.name}. Current: ${availableStock}, Min: ${reorderPoint.minQuantity}, Recommended order: ${recommendedQuantity}`,
-            },
-          });
+          // Send notification with EMAIL to managers
+          await notificationService.notifyLowStock(
+            tenantId,
+            item.productId,
+            item.product.name,
+            item.location.name,
+            availableStock,
+            reorderPoint.minQuantity,
+            recommendedQuantity
+          );
 
-          logger.info(`Low stock notification created for product ${item.productId} in tenant ${tenantId}`);
+          logger.info(
+            `Low stock notification sent for product ${item.product.name} at ${item.location.name} in tenant ${tenantId}`
+          );
         }
       }
     }
+
+    if (lowStockCount > 0) {
+      logger.info(`Found ${lowStockCount} low stock items for tenant ${tenantId}`);
+    }
   } catch (error) {
-    logger.error({ err: error, tenantId }, 'Error checking tenant');
+    logger.error({ err: error, tenantId }, 'Error checking tenant reorder points');
     throw error;
   }
 }
@@ -154,5 +167,13 @@ export const triggerManualReorderCheck = async (tenantId?: string): Promise<void
     await checkAllTenants();
   }
 };
+
+/**
+ * Close worker gracefully
+ */
+export async function closeReorderWorker(): Promise<void> {
+  await worker.close();
+  await reorderQueue.close();
+}
 
 export { reorderQueue, worker };

@@ -41,14 +41,13 @@ class PurchaseOrderService {
           },
         },
         items: {
-          include: {
-            product: {
-              select: {
-                id: true,
-                sku: true,
-                name: true,
-              },
-            },
+          select: {
+            id: true,
+            purchaseOrderId: true,
+            productId: true,
+            quantity: true,
+            unitPrice: true,
+            receivedQuantity: true,
           },
         },
       },
@@ -72,6 +71,32 @@ class PurchaseOrderService {
   }
 
   async create(tenantId: string, userId: string, input: CreatePurchaseOrderInput) {
+    const supplier = await (tenantDb as any).supplier.findFirst({
+      where: {
+        id: input.supplierId,
+        tenantId,
+      },
+      select: { id: true },
+    });
+
+    if (!supplier) {
+      throw new Error('SUPPLIER_NOT_FOUND');
+    }
+
+    for (const item of input.items) {
+      const product = await (tenantDb as any).product.findFirst({
+        where: {
+          id: item.productId,
+          tenantId,
+        },
+        select: { id: true },
+      });
+
+      if (!product) {
+        throw new Error(`PRODUCT_NOT_FOUND:${item.productId}`);
+      }
+    }
+
     const order = await (tenantDb as any).purchaseOrder.create({
       data: {
         tenantId,
@@ -96,14 +121,13 @@ class PurchaseOrderService {
           },
         },
         items: {
-          include: {
-            product: {
-              select: {
-                id: true,
-                sku: true,
-                name: true,
-              },
-            },
+          select: {
+            id: true,
+            purchaseOrderId: true,
+            productId: true,
+            quantity: true,
+            unitPrice: true,
+            receivedQuantity: true,
           },
         },
       },
@@ -115,9 +139,9 @@ class PurchaseOrderService {
         tenantId,
         userId,
         action: 'PURCHASE_ORDER_CREATE',
-        entityType: 'PurchaseOrder',
-        entityId: order.id,
-        newValues: { supplierId: input.supplierId, items: input.items },
+        resource: 'PurchaseOrder',
+        resourceId: order.id,
+        changes: JSON.stringify({ supplierId: input.supplierId, items: input.items }),
       },
     });
 
@@ -167,14 +191,13 @@ class PurchaseOrderService {
           },
         },
         items: {
-          include: {
-            product: {
-              select: {
-                id: true,
-                sku: true,
-                name: true,
-              },
-            },
+          select: {
+            id: true,
+            purchaseOrderId: true,
+            productId: true,
+            quantity: true,
+            unitPrice: true,
+            receivedQuantity: true,
           },
         },
       },
@@ -186,10 +209,12 @@ class PurchaseOrderService {
         tenantId,
         userId,
         action: 'PURCHASE_ORDER_UPDATE',
-        entityType: 'PurchaseOrder',
-        entityId: order.id,
-        oldValues: { status: existingOrder.status },
-        newValues: { status: input.status },
+        resource: 'PurchaseOrder',
+        resourceId: order.id,
+        changes: JSON.stringify({
+          oldStatus: existingOrder.status,
+          newStatus: input.status,
+        }),
       },
     });
 
@@ -240,8 +265,8 @@ class PurchaseOrderService {
         where: {
           tenantId,
           productId: received.productId,
-          locationId: order.items[0].locationId || null,
         },
+        orderBy: { updatedAt: 'desc' },
       });
 
       if (inventory) {
@@ -276,14 +301,13 @@ class PurchaseOrderService {
           },
         },
         items: {
-          include: {
-            product: {
-              select: {
-                id: true,
-                sku: true,
-                name: true,
-              },
-            },
+          select: {
+            id: true,
+            purchaseOrderId: true,
+            productId: true,
+            quantity: true,
+            unitPrice: true,
+            receivedQuantity: true,
           },
         },
       },
@@ -295,9 +319,9 @@ class PurchaseOrderService {
         tenantId,
         userId,
         action: 'PURCHASE_ORDER_RECEIVE',
-        entityType: 'PurchaseOrder',
-        entityId: orderId,
-        newValues: { items: input.items, newStatus },
+        resource: 'PurchaseOrder',
+        resourceId: orderId,
+        changes: JSON.stringify({ items: input.items, newStatus }),
       },
     });
 

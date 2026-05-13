@@ -1,5 +1,6 @@
 import { tenantDb } from '../config/database';
 import { logger } from '../config/logger';
+import { notificationService } from './notification.service';
 
 class DeadStockService {
   /**
@@ -43,6 +44,8 @@ class DeadStockService {
 
         if (newPrice === product.retailPrice) continue; // No change
 
+        const oldPrice = product.retailPrice;
+
         // Update product price
         await tenantDb.product.update({
           where: { id: product.id },
@@ -54,25 +57,26 @@ class DeadStockService {
           data: {
             tenantId,
             productId: product.id,
-            oldPrice: product.retailPrice,
+            oldPrice,
             newPrice,
             reason: `Dead stock discount (${Math.round(discount * 100)}%)`,
           },
         });
 
-        // Create notification for managers
-        await tenantDb.notification.create({
-          data: {
-            tenantId,
-            type: 'DEAD_STOCK_DISCOUNT',
-            message: `Product ${product.sku} price reduced from $${product.retailPrice} to $${newPrice} due to ${maxDays} days in inventory`,
-            metadata: { productId: product.id, discount, daysInStock: maxDays },
-          },
-        });
+        // Send notification with EMAIL to managers
+        await notificationService.notifyDeadStockDiscount(
+          tenantId,
+          product.id,
+          product.name,
+          maxDays,
+          oldPrice,
+          newPrice,
+          Math.round(discount * 100)
+        );
 
         updatedCount++;
         logger.info(
-          `Dead stock discount applied: ${product.sku}, ${Math.round(discount * 100)}%, $${product.retailPrice} -> $${newPrice}`,
+          `Dead stock discount applied: ${product.sku}, ${Math.round(discount * 100)}%, $${oldPrice} -> $${newPrice}`,
         );
       }
 

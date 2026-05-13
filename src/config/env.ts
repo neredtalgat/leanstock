@@ -31,6 +31,9 @@ const envSchema = z.object({
   SMTP_USER: z.string().optional(),
   SMTP_PASS: z.string().optional(),
   EMAIL_FROM: z.string().email().optional(),
+  
+  // Frontend URL for email links
+  FRONTEND_URL: z.string().url().default('http://localhost:3000'),
 
   // Email Token Expiry
   EMAIL_VERIFICATION_EXPIRES_IN: z.string().default('24h'),

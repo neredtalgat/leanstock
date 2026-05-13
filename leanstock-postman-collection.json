@@ -1,1168 +1,1629 @@
 {
-  "info": {
-    "_postman_id": "leanstock-complete-collection",
-    "name": "LeanStock API Collection",
-    "description": "Complete API collection for LeanStock inventory management system",
-    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
-  },
-  "variable": [
-    {
-      "key": "baseUrl",
-      "value": "http://localhost:3000",
-      "type": "string"
-    },
-    {
-      "key": "tenantId",
-      "value": "",
-      "type": "string"
-    },
-    {
-      "key": "accessToken",
-      "value": "",
-      "type": "string"
-    },
-    {
-      "key": "refreshToken",
-      "value": "",
-      "type": "string"
-    },
-    {
-      "key": "superAdminAccessToken",
-      "value": "",
-      "type": "string"
-    },
-    {
-      "key": "userId",
-      "value": "",
-      "type": "string"
-    },
-    {
-      "key": "productId",
-      "value": "",
-      "type": "string"
-    },
-    {
-      "key": "locationId",
-      "value": "",
-      "type": "string"
-    },
-    {
-      "key": "toLocationId",
-      "value": "",
-      "type": "string"
-    },
-    {
-      "key": "inventoryId",
-      "value": "",
-      "type": "string"
-    },
-    {
-      "key": "movementId",
-      "value": "",
-      "type": "string"
-    },
-    {
-      "key": "transferId",
-      "value": "",
-      "type": "string"
-    },
-    {
-      "key": "supplierId",
-      "value": "",
-      "type": "string"
-    },
-    {
-      "key": "purchaseOrderId",
-      "value": "",
-      "type": "string"
-    },
-    {
-      "key": "supplierReturnId",
-      "value": "",
-      "type": "string"
-    },
-    {
-      "key": "reorderPointId",
-      "value": "",
-      "type": "string"
-    },
-    {
-      "key": "notificationId",
-      "value": "",
-      "type": "string"
-    },
-    {
-      "key": "inviteToken",
-      "value": "",
-      "type": "string"
-    }
-  ],
-  "item": [
-    {
-      "name": "🔐 Authentication",
-      "item": [
-        {
-          "name": "01 - Login",
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "url": "{{baseUrl}}/auth/login",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"email\": \"admin@demo.com\",\n  \"password\": \"Admin@123456\",\n  \"tenantId\": \"{{tenantId}}\"\n}"
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "var jsonData = pm.response.json();",
-                  "if (jsonData.accessToken) {",
-                  "    pm.environment.set('accessToken', jsonData.accessToken);",
-                  "    pm.environment.set('refreshToken', jsonData.refreshToken);",
-                  "    if (jsonData.user && jsonData.user.id) {",
-                  "        pm.environment.set('userId', jsonData.user.id);",
-                  "    }",
-                  "}",
-                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
-                  "pm.test('Has access token', function () { pm.expect(jsonData).to.have.property('accessToken'); });"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "02 - Refresh Token",
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "url": "{{baseUrl}}/auth/refresh",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "var jsonData = pm.response.json();",
-                  "if (jsonData.accessToken) {",
-                  "    pm.environment.set('accessToken', jsonData.accessToken);",
-                  "}"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "03 - Logout",
-          "request": {
-            "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
-            ],
-            "url": "{{baseUrl}}/auth/logout"
-          }
-        },
-        {
-          "name": "04 - Register User",
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "url": "{{baseUrl}}/auth/register",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"email\": \"newuser@demo.com\",\n  \"password\": \"NewUser123!\",\n  \"firstName\": \"New\",\n  \"lastName\": \"User\",\n  \"tenantId\": \"{{tenantId}}\",\n  \"role\": \"STORE_ASSOCIATE\"\n}"
-            }
-          }
-        },
-        {
-          "name": "05 - Request Password Reset",
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "url": "{{baseUrl}}/auth/request-password-reset",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"email\": \"admin@demo.com\",\n  \"tenantId\": \"{{tenantId}}\"\n}"
-            }
-          }
-        },
-        {
-          "name": "06 - Verify Email",
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "url": "{{baseUrl}}/auth/verify-email",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"token\": \"verification-token-here\",\n  \"tenantId\": \"{{tenantId}}\"\n}"
-            }
-          }
-        },
-        {
-          "name": "07 - Change Password",
-          "request": {
-            "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
-            ],
-            "url": "{{baseUrl}}/auth/change-password",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"currentPassword\": \"Admin@123456\",\n  \"newPassword\": \"NewSecurePass123!\"\n}"
-            }
-          }
-        },
-        {
-          "name": "08 - Invite User (Admin Only)",
-          "request": {
-            "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
-            ],
-            "url": "{{baseUrl}}/auth/invite",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"email\": \"newemployee@example.com\",\n  \"role\": \"STORE_ASSOCIATE\"\n}"
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "var jsonData = pm.response.json();",
-                  "if (jsonData.inviteToken) {",
-                  "    pm.environment.set('inviteToken', jsonData.inviteToken);",
-                  "}",
-                  "pm.test('Status code is 201', function () { pm.response.to.have.status(201); });"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "09 - Register by Invite Token",
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "url": "{{baseUrl}}/auth/register-invite",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"token\": \"{{inviteToken}}\",\n  \"password\": \"TestPass123!\",\n  \"firstName\": \"New\",\n  \"lastName\": \"Employee\"\n}"
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "var jsonData = pm.response.json();",
-                  "if (jsonData.accessToken) {",
-                  "    pm.environment.set('accessToken', jsonData.accessToken);",
-                  "    pm.environment.set('refreshToken', jsonData.refreshToken);",
-                  "}",
-                  "pm.test('Status code is 201', function () { pm.response.to.have.status(201); });"
-                ]
-              }
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "name": "📦 Products",
-      "item": [
-        {
-          "name": "01 - List Products",
-          "request": {
-            "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
-            "url": "{{baseUrl}}/products?limit=10&page=1"
-          }
-        },
-        {
-          "name": "02 - Get Product by ID",
-          "request": {
-            "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
-            "url": "{{baseUrl}}/products/{{productId}}"
-          }
-        },
-        {
-          "name": "03 - Create Product",
-          "request": {
-            "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
-            ],
-            "url": "{{baseUrl}}/products",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"sku\": \"SKU-NEW-001\",\n  \"name\": \"New Product\",\n  \"description\": \"A new test product\",\n  \"baseCost\": 25.00,\n  \"retailPrice\": 39.99,\n  \"weight\": 1.0\n}"
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "var jsonData = pm.response.json();",
-                  "if (jsonData.id) {",
-                  "    pm.environment.set('productId', jsonData.id);",
-                  "}"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "04 - Update Product",
-          "request": {
-            "method": "PUT",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
-            ],
-            "url": "{{baseUrl}}/products/{{productId}}",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Updated Product\",\n  \"retailPrice\": 34.99\n}"
-            }
-          }
-        },
-        {
-          "name": "05 - Delete Product",
-          "request": {
-            "method": "DELETE",
-            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
-            "url": "{{baseUrl}}/products/{{productId}}"
-          }
-        },
-        {
-          "name": "06 - Upload Product Image",
-          "request": {
-            "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
-            ],
-            "url": "{{baseUrl}}/products/{{productId}}/images",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"url\": \"https://example.com/image.jpg\",\n  \"isPrimary\": true\n}"
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "📍 Locations",
-      "item": [
-        {
-          "name": "01 - List Locations",
-          "request": {
-            "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
-            "url": "{{baseUrl}}/locations"
-          }
-        },
-        {
-          "name": "02 - Get Location by ID",
-          "request": {
-            "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
-            "url": "{{baseUrl}}/locations/{{locationId}}"
-          }
-        },
-        {
-          "name": "03 - Create Location",
-          "request": {
-            "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
-            ],
-            "url": "{{baseUrl}}/locations",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"New Warehouse\",\n  \"type\": \"warehouse\",\n  \"address\": \"789 Industrial Blvd\"\n}"
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "var jsonData = pm.response.json();",
-                  "if (jsonData.id) {",
-                  "    pm.environment.set('locationId', jsonData.id);",
-                  "}"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "04 - Update Location",
-          "request": {
-            "method": "PUT",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
-            ],
-            "url": "{{baseUrl}}/locations/{{locationId}}",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"address\": \"Updated Address: 456 Main Street\"\n}"
-            }
-          }
-        },
-        {
-          "name": "05 - Delete Location",
-          "request": {
-            "method": "DELETE",
-            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
-            "url": "{{baseUrl}}/locations/{{locationId}}"
-          }
-        }
-      ]
-    },
-    {
-      "name": "📊 Inventory",
-      "item": [
-        {
-          "name": "01 - List Inventory",
-          "request": {
-            "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
-            "url": "{{baseUrl}}/inventory?limit=10&page=1"
-          }
-        },
-        {
-          "name": "02 - Get Inventory by ID",
-          "request": {
-            "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
-            "url": "{{baseUrl}}/inventory/{{inventoryId}}"
-          }
-        },
-        {
-          "name": "03 - Create Inventory Record",
-          "request": {
-            "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
-            ],
-            "url": "{{baseUrl}}/inventory",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"productId\": \"{{productId}}\",\n  \"locationId\": \"{{locationId}}\",\n  \"quantity\": 100,\n  \"reservedQuantity\": 0\n}"
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "var jsonData = pm.response.json();",
-                  "if (jsonData.id) {",
-                  "    pm.environment.set('inventoryId', jsonData.id);",
-                  "}"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "04 - Update Inventory",
-          "request": {
-            "method": "PUT",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
-            ],
-            "url": "{{baseUrl}}/inventory/{{inventoryId}}",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"quantity\": 150,\n  \"reservedQuantity\": 10\n}"
-            }
-          }
-        },
-        {
-          "name": "05 - Delete Inventory",
-          "request": {
-            "method": "DELETE",
-            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
-            "url": "{{baseUrl}}/inventory/{{inventoryId}}"
-          }
-        },
-        {
-          "name": "06 - Adjust Inventory",
-          "request": {
-            "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
-            ],
-            "url": "{{baseUrl}}/inventory/adjust",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"productId\": \"{{productId}}\",\n  \"locationId\": \"{{locationId}}\",\n  \"quantity\": 50,\n  \"type\": \"IN\",\n  \"notes\": \"Stock adjustment\"\n}"
-            }
-          }
-        },
-        {
-          "name": "07 - List Inventory Movements",
-          "request": {
-            "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
-            "url": "{{baseUrl}}/inventory/movements?limit=10&page=1"
-          }
-        },
-        {
-          "name": "08 - Get Movement by ID",
-          "request": {
-            "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
-            "url": "{{baseUrl}}/inventory/movements/{{movementId}}"
-          }
-        }
-      ]
-    },
-    {
-      "name": "🚚 Transfers",
-      "item": [
-        {
-          "name": "01 - List Transfers",
-          "request": {
-            "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
-            "url": "{{baseUrl}}/transfers"
-          }
-        },
-        {
-          "name": "02 - Get Transfer by ID",
-          "request": {
-            "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
-            "url": "{{baseUrl}}/transfers/{{transferId}}"
-          }
-        },
-        {
-          "name": "03 - Create Transfer",
-          "request": {
-            "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
-            ],
-            "url": "{{baseUrl}}/transfers",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"fromLocationId\": \"{{locationId}}\",\n  \"toLocationId\": \"{{toLocationId}}\",\n  \"items\": [\n    {\n      \"productId\": \"{{productId}}\",\n      \"quantity\": 10\n    }\n  ],\n  \"notes\": \"Transfer for restocking\"\n}"
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "var jsonData = pm.response.json();",
-                  "if (jsonData.id) {",
-                  "    pm.environment.set('transferId', jsonData.id);",
-                  "}"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "04 - Approve Transfer",
-          "request": {
-            "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
-            ],
-            "url": "{{baseUrl}}/transfers/{{transferId}}/approve",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"approved\": true,\n  \"notes\": \"Approved\"\n}"
-            }
-          }
-        },
-        {
-          "name": "05 - Ship Transfer",
-          "request": {
-            "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
-            ],
-            "url": "{{baseUrl}}/transfers/{{transferId}}/ship",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"carrier\": \"FedEx\",\n  \"trackingNumber\": \"1234567890\"\n}"
-            }
-          }
-        },
-        {
-          "name": "06 - Receive Transfer",
-          "request": {
-            "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
-            ],
-            "url": "{{baseUrl}}/transfers/{{transferId}}/receive",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"items\": [\n    {\n      \"productId\": \"{{productId}}\",\n      \"receivedQuantity\": 10\n    }\n  ]\n}"
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "🏭 Suppliers",
-      "item": [
-        {
-          "name": "01 - List Suppliers",
-          "request": {
-            "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
-            "url": "{{baseUrl}}/suppliers"
-          }
-        },
-        {
-          "name": "02 - Get Supplier by ID",
-          "request": {
-            "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
-            "url": "{{baseUrl}}/suppliers/{{supplierId}}"
-          }
-        },
-        {
-          "name": "03 - Create Supplier",
-          "request": {
-            "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
-            ],
-            "url": "{{baseUrl}}/suppliers",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"New Supplier Inc\",\n  \"email\": \"contact@newsupplier.com\",\n  \"phone\": \"+9876543210\",\n  \"address\": \"123 Supplier Way\"\n}"
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "var jsonData = pm.response.json();",
-                  "if (jsonData.id) {",
-                  "    pm.environment.set('supplierId', jsonData.id);",
-                  "}"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "04 - Update Supplier",
-          "request": {
-            "method": "PUT",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
-            ],
-            "url": "{{baseUrl}}/suppliers/{{supplierId}}",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Updated Supplier Inc\"\n}"
-            }
-          }
-        },
-        {
-          "name": "05 - Delete Supplier",
-          "request": {
-            "method": "DELETE",
-            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
-            "url": "{{baseUrl}}/suppliers/{{supplierId}}"
-          }
-        },
-        {
-          "name": "06 - List Supplier Products",
-          "request": {
-            "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
-            "url": "{{baseUrl}}/suppliers/{{supplierId}}/products"
-          }
-        },
-        {
-          "name": "07 - Add Product to Supplier",
-          "request": {
-            "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
-            ],
-            "url": "{{baseUrl}}/suppliers/{{supplierId}}/products",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"productId\": \"{{productId}}\",\n  \"supplierSku\": \"SUP-SKU-001\",\n  \"price\": 12.50,\n  \"leadTimeDays\": 7\n}"
-            }
-          }
-        },
-        {
-          "name": "08 - Remove Product from Supplier",
-          "request": {
-            "method": "DELETE",
-            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
-            "url": "{{baseUrl}}/suppliers/{{supplierId}}/products/{{productId}}"
-          }
-        }
-      ]
-    },
-    {
-      "name": "📝 Purchase Orders",
-      "item": [
-        {
-          "name": "01 - List Purchase Orders",
-          "request": {
-            "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
-            "url": "{{baseUrl}}/purchase-orders"
-          }
-        },
-        {
-          "name": "02 - Get Purchase Order by ID",
-          "request": {
-            "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
-            "url": "{{baseUrl}}/purchase-orders/{{purchaseOrderId}}"
-          }
-        },
-        {
-          "name": "03 - Create Purchase Order",
-          "request": {
-            "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
-            ],
-            "url": "{{baseUrl}}/purchase-orders",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"supplierId\": \"{{supplierId}}\",\n  \"items\": [\n    {\n      \"productId\": \"{{productId}}\",\n      \"quantity\": 50,\n      \"unitPrice\": 15.00\n    }\n  ],\n  \"expectedDeliveryDate\": \"2026-06-01T00:00:00Z\"\n}"
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "var jsonData = pm.response.json();",
-                  "if (jsonData.id) {",
-                  "    pm.environment.set('purchaseOrderId', jsonData.id);",
-                  "}"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "04 - Update Purchase Order",
-          "request": {
-            "method": "PUT",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
-            ],
-            "url": "{{baseUrl}}/purchase-orders/{{purchaseOrderId}}",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"status\": \"CONFIRMED\"\n}"
-            }
-          }
-        },
-        {
-          "name": "05 - Receive Purchase Order",
-          "request": {
-            "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
-            ],
-            "url": "{{baseUrl}}/purchase-orders/{{purchaseOrderId}}/receive",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"items\": [\n    {\n      \"productId\": \"{{productId}}\",\n      \"receivedQuantity\": 48\n    }\n  ],\n  \"notes\": \"Received with 2 units damaged\"\n}"
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "↩️ Supplier Returns",
-      "item": [
-        {
-          "name": "01 - List Returns",
-          "request": {
-            "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
-            "url": "{{baseUrl}}/supplier-returns"
-          }
-        },
-        {
-          "name": "02 - Get Return by ID",
-          "request": {
-            "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
-            "url": "{{baseUrl}}/supplier-returns/{{supplierReturnId}}"
-          }
-        },
-        {
-          "name": "03 - Create Return",
-          "request": {
-            "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
-            ],
-            "url": "{{baseUrl}}/supplier-returns",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"supplierId\": \"{{supplierId}}\",\n  \"locationId\": \"{{locationId}}\",\n  \"reason\": \"Defective items\",\n  \"items\": [\n    {\n      \"productId\": \"{{productId}}\",\n      \"quantity\": 5,\n      \"unitPrice\": 12.50,\n      \"reason\": \"Quality issues\"\n    }\n  ]\n}"
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "var jsonData = pm.response.json();",
-                  "if (jsonData.id) {",
-                  "    pm.environment.set('supplierReturnId', jsonData.id);",
-                  "}"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "04 - Update Return",
-          "request": {
-            "method": "PUT",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
-            ],
-            "url": "{{baseUrl}}/supplier-returns/{{supplierReturnId}}",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"status\": \"APPROVED\"\n}"
-            }
-          }
-        },
-        {
-          "name": "05 - Ship Return",
-          "request": {
-            "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
-            ],
-            "url": "{{baseUrl}}/supplier-returns/{{supplierReturnId}}/ship",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"carrier\": \"UPS\",\n  \"trackingNumber\": \"TRACK123456\"\n}"
-            }
-          }
-        },
-        {
-          "name": "06 - Receive Return",
-          "request": {
-            "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
-            ],
-            "url": "{{baseUrl}}/supplier-returns/{{supplierReturnId}}/receive",
-            "body": {
-              "mode": "raw",
-              "raw": "{}"
-            }
-          }
-        },
-        {
-          "name": "07 - Cancel Return",
-          "request": {
-            "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
-            ],
-            "url": "{{baseUrl}}/supplier-returns/{{supplierReturnId}}/cancel",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"reason\": \"Cancelled by user\"\n}"
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "📉 Reorder Points",
-      "item": [
-        {
-          "name": "01 - List Reorder Points",
-          "request": {
-            "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
-            "url": "{{baseUrl}}/reorder-points"
-          }
-        },
-        {
-          "name": "02 - Get Reorder Point by ID",
-          "request": {
-            "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
-            "url": "{{baseUrl}}/reorder-points/{{reorderPointId}}"
-          }
-        },
-        {
-          "name": "03 - Create Reorder Point",
-          "request": {
-            "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
-            ],
-            "url": "{{baseUrl}}/reorder-points",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"productId\": \"{{productId}}\",\n  \"locationId\": \"{{locationId}}\",\n  \"minQuantity\": 20,\n  \"maxQuantity\": 100\n}"
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "var jsonData = pm.response.json();",
-                  "if (jsonData.id) {",
-                  "    pm.environment.set('reorderPointId', jsonData.id);",
-                  "}"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "04 - Update Reorder Point",
-          "request": {
-            "method": "PUT",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
-            ],
-            "url": "{{baseUrl}}/reorder-points/{{reorderPointId}}",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"minQuantity\": 15,\n  \"maxQuantity\": 120\n}"
-            }
-          }
-        },
-        {
-          "name": "05 - Delete Reorder Point",
-          "request": {
-            "method": "DELETE",
-            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
-            "url": "{{baseUrl}}/reorder-points/{{reorderPointId}}"
-          }
-        }
-      ]
-    },
-    {
-      "name": "🔔 Notifications",
-      "item": [
-        {
-          "name": "01 - List Notifications",
-          "request": {
-            "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
-            "url": "{{baseUrl}}/notifications"
-          }
-        },
-        {
-          "name": "02 - Get Unread Count",
-          "request": {
-            "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
-            "url": "{{baseUrl}}/notifications/unread-count"
-          }
-        },
-        {
-          "name": "03 - Mark As Read",
-          "request": {
-            "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
-            ],
-            "url": "{{baseUrl}}/notifications/{{notificationId}}/read",
-            "body": {
-              "mode": "raw",
-              "raw": "{}"
-            }
-          }
-        },
-        {
-          "name": "04 - Mark All as Read",
-          "request": {
-            "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
-            ],
-            "url": "{{baseUrl}}/notifications/mark-all-read",
-            "body": {
-              "mode": "raw",
-              "raw": "{}"
-            }
-          }
-        },
-        {
-          "name": "05 - Delete Notification",
-          "request": {
-            "method": "DELETE",
-            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
-            "url": "{{baseUrl}}/notifications/{{notificationId}}"
-          }
-        }
-      ]
-    },
-    {
-      "name": "📈 Reports & Audit",
-      "item": [
-        {
-          "name": "01 - Low Stock Report",
-          "request": {
-            "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
-            "url": "{{baseUrl}}/reports/low-stock"
-          }
-        },
-        {
-          "name": "02 - List Audit Logs",
-          "request": {
-            "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
-            "url": "{{baseUrl}}/audit-logs?limit=10&page=1"
-          }
-        }
-      ]
-    },
-    {
-      "name": "🏢 Tenants (Super Admin)",
-      "item": [
-        {
-          "name": "01 - Create Tenant",
-          "request": {
-            "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{superAdminAccessToken}}" }
-            ],
-            "url": "{{baseUrl}}/tenants",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"New Tenant Co\"\n}"
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "var jsonData = pm.response.json();",
-                  "if (jsonData.id) {",
-                  "    pm.environment.set('tenantId', jsonData.id);",
-                  "}"
-                ]
-              }
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "name": "⚙️ System (Super Admin)",
-      "item": [
-        {
-          "name": "01 - Get System Limits",
-          "request": {
-            "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{superAdminAccessToken}}" }],
-            "url": "{{baseUrl}}/system/limits"
-          }
-        },
-        {
-          "name": "02 - Get System Status",
-          "request": {
-            "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{superAdminAccessToken}}" }],
-            "url": "{{baseUrl}}/system/status"
-          }
-        }
-      ]
-    },
-    {
-      "name": "📊 Analytics (Super Admin)",
-      "item": [
-        {
-          "name": "01 - Cross-Tenant Analytics",
-          "request": {
-            "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{superAdminAccessToken}}" }],
-            "url": "{{baseUrl}}/analytics/cross-tenant"
-          }
-        },
-        {
-          "name": "02 - System Metrics",
-          "request": {
-            "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{superAdminAccessToken}}" }],
-            "url": "{{baseUrl}}/analytics/system-metrics"
-          }
-        }
-      ]
-    },
-    {
-      "name": "🏥 Health",
-      "item": [
-        {
-          "name": "01 - Health Check",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": "{{baseUrl}}/health"
-          }
-        }
-      ]
-    }
-  ]
+    "info":  {
+                 "_postman_id":  "leanstock-complete-collection",
+                 "name":  "LeanStock API Collection",
+                 "description":  "Complete API collection for LeanStock inventory management system",
+                 "schema":  "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+             },
+    "variable":  [
+                     {
+                         "key":  "baseUrl",
+                         "value":  "http://localhost:3000",
+                         "type":  "string"
+                     },
+                     {
+                         "key":  "tenantId",
+                         "value":  "",
+                         "type":  "string"
+                     },
+                     {
+                         "key":  "accessToken",
+                         "value":  "",
+                         "type":  "string"
+                     },
+                     {
+                         "key":  "refreshToken",
+                         "value":  "",
+                         "type":  "string"
+                     },
+                     {
+                         "key":  "superAdminAccessToken",
+                         "value":  "",
+                         "type":  "string"
+                     },
+                     {
+                         "key":  "userId",
+                         "value":  "",
+                         "type":  "string"
+                     },
+                     {
+                         "key":  "productId",
+                         "value":  "",
+                         "type":  "string"
+                     },
+                     {
+                         "key":  "locationId",
+                         "value":  "",
+                         "type":  "string"
+                     },
+                     {
+                         "key":  "toLocationId",
+                         "value":  "",
+                         "type":  "string"
+                     },
+                     {
+                         "key":  "inventoryId",
+                         "value":  "",
+                         "type":  "string"
+                     },
+                     {
+                         "key":  "movementId",
+                         "value":  "",
+                         "type":  "string"
+                     },
+                     {
+                         "key":  "transferId",
+                         "value":  "",
+                         "type":  "string"
+                     },
+                     {
+                         "key":  "supplierId",
+                         "value":  "",
+                         "type":  "string"
+                     },
+                     {
+                         "key":  "purchaseOrderId",
+                         "value":  "",
+                         "type":  "string"
+                     },
+                     {
+                         "key":  "supplierReturnId",
+                         "value":  "",
+                         "type":  "string"
+                     },
+                     {
+                         "key":  "reorderPointId",
+                         "value":  "",
+                         "type":  "string"
+                     },
+                     {
+                         "key":  "notificationId",
+                         "value":  "",
+                         "type":  "string"
+                     },
+                     {
+                         "key":  "inviteToken",
+                         "value":  "",
+                         "type":  "string"
+                     }
+                 ],
+    "item":  [
+                 {
+                     "name":  "🔐 Authentication",
+                     "item":  [
+                                  {
+                                      "name":  "01 - Login",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/auth/login",
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"email\": \"admin@demo.com\",\n  \"password\": \"Admin@123456\",\n  \"tenantId\": \"{{tenantId}}\"\n}"
+                                                               },
+                                                      "description":  "Request: 01 - Login\nMethod: POST\nEndpoint: {{baseUrl}}/auth/login\nPurpose: Execute POST {{baseUrl}}/auth/login and return API response."
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "exec":  [
+                                                                                    "var jsonData = pm.response.json();",
+                                                                                    "if (jsonData.accessToken) {",
+                                                                                    "    pm.environment.set(\u0027accessToken\u0027, jsonData.accessToken);",
+                                                                                    "    pm.environment.set(\u0027refreshToken\u0027, jsonData.refreshToken);",
+                                                                                    "    if (jsonData.user \u0026\u0026 jsonData.user.id) {",
+                                                                                    "        pm.environment.set(\u0027userId\u0027, jsonData.user.id);",
+                                                                                    "    }",
+                                                                                    "}",
+                                                                                    "pm.test(\u0027Status code is 200\u0027, function () { pm.response.to.have.status(200); });",
+                                                                                    "pm.test(\u0027Has access token\u0027, function () { pm.expect(jsonData).to.have.property(\u0027accessToken\u0027); });"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ]
+                                  },
+                                  {
+                                      "name":  "02 - Refresh Token",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/auth/refresh",
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+                                                               },
+                                                      "description":  "Request: 02 - Refresh Token\nMethod: POST\nEndpoint: {{baseUrl}}/auth/refresh\nPurpose: Execute POST {{baseUrl}}/auth/refresh and return API response."
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "exec":  [
+                                                                                    "var jsonData = pm.response.json();",
+                                                                                    "if (jsonData.accessToken) {",
+                                                                                    "    pm.environment.set(\u0027accessToken\u0027, jsonData.accessToken);",
+                                                                                    "}"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ]
+                                  },
+                                  {
+                                      "name":  "03 - Logout",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     },
+                                                                     {
+                                                                         "key":  "Authorization",
+                                                                         "value":  "Bearer {{accessToken}}"
+                                                                     }
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/auth/logout",
+                                                      "description":  "Request: 03 - Logout\nMethod: POST\nEndpoint: {{baseUrl}}/auth/logout\nPurpose: Execute POST {{baseUrl}}/auth/logout and return API response."
+                                                  }
+                                  },
+                                  {
+                                      "name":  "DISABLED - Register User",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/auth/register",
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"email\": \"newuser@demo.com\",\n  \"password\": \"NewUser123!\",\n  \"firstName\": \"New\",\n  \"lastName\": \"User\",\n  \"tenantId\": \"{{tenantId}}\",\n  \"role\": \"STORE_ASSOCIATE\"\n}"
+                                                               },
+                                                      "description":  "Request disabled: Public registration is turned off for employee-only system. Use /auth/invite + /auth/register-invite."
+                                                  }
+                                  },
+                                  {
+                                      "name":  "05 - Request Password Reset",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/auth/request-password-reset",
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"email\": \"admin@demo.com\",\n  \"tenantId\": \"{{tenantId}}\"\n}"
+                                                               },
+                                                      "description":  "Request: 05 - Request Password Reset\nMethod: POST\nEndpoint: {{baseUrl}}/auth/request-password-reset\nPurpose: Execute POST {{baseUrl}}/auth/request-password-reset and return API response."
+                                                  }
+                                  },
+                                  {
+                                      "name":  "06 - Verify Email",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/auth/verify-email",
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"token\": \"verification-token-here\",\n  \"tenantId\": \"{{tenantId}}\"\n}"
+                                                               },
+                                                      "description":  "Request: 06 - Verify Email\nMethod: POST\nEndpoint: {{baseUrl}}/auth/verify-email\nPurpose: Execute POST {{baseUrl}}/auth/verify-email and return API response."
+                                                  }
+                                  },
+                                  {
+                                      "name":  "07 - Change Password",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     },
+                                                                     {
+                                                                         "key":  "Authorization",
+                                                                         "value":  "Bearer {{accessToken}}"
+                                                                     }
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/auth/change-password",
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"currentPassword\": \"Admin@123456\",\n  \"newPassword\": \"NewSecurePass123!\"\n}"
+                                                               },
+                                                      "description":  "Request: 07 - Change Password\nMethod: POST\nEndpoint: {{baseUrl}}/auth/change-password\nPurpose: Execute POST {{baseUrl}}/auth/change-password and return API response."
+                                                  }
+                                  },
+                                  {
+                                      "name":  "08 - Invite User (Admin Only)",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     },
+                                                                     {
+                                                                         "key":  "Authorization",
+                                                                         "value":  "Bearer {{accessToken}}"
+                                                                     }
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/auth/invite",
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"email\": \"newemployee@example.com\",\n  \"role\": \"STORE_ASSOCIATE\"\n}"
+                                                               },
+                                                      "description":  "Request: 08 - Invite User (Admin Only)\nMethod: POST\nEndpoint: {{baseUrl}}/auth/invite\nPurpose: Execute POST {{baseUrl}}/auth/invite and return API response."
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "exec":  [
+                                                                                    "var jsonData = pm.response.json();",
+                                                                                    "if (jsonData.inviteToken) {",
+                                                                                    "    pm.environment.set(\u0027inviteToken\u0027, jsonData.inviteToken);",
+                                                                                    "}",
+                                                                                    "pm.test(\u0027Status code is 201\u0027, function () { pm.response.to.have.status(201); });"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ]
+                                  },
+                                  {
+                                      "name":  "09 - Register by Invite Token",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/auth/register-invite",
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"token\": \"{{inviteToken}}\",\n  \"password\": \"TestPass123!\",\n  \"firstName\": \"New\",\n  \"lastName\": \"Employee\"\n}"
+                                                               },
+                                                      "description":  "Request: 09 - Register by Invite Token\nMethod: POST\nEndpoint: {{baseUrl}}/auth/register-invite\nPurpose: Execute POST {{baseUrl}}/auth/register-invite and return API response."
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "exec":  [
+                                                                                    "var jsonData = pm.response.json();",
+                                                                                    "if (jsonData.accessToken) {",
+                                                                                    "    pm.environment.set(\u0027accessToken\u0027, jsonData.accessToken);",
+                                                                                    "    pm.environment.set(\u0027refreshToken\u0027, jsonData.refreshToken);",
+                                                                                    "}",
+                                                                                    "pm.test(\u0027Status code is 201\u0027, function () { pm.response.to.have.status(201); });"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ]
+                                  }
+                              ]
+                 },
+                 {
+                     "name":  "📦 Products",
+                     "item":  [
+                                  {
+                                      "name":  "01 - List Products",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Authorization",
+                                                                         "value":  "Bearer {{accessToken}}"
+                                                                     }
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/products?limit=10\u0026page=1",
+                                                      "description":  "Request: 01 - List Products\nMethod: GET\nEndpoint: {{baseUrl}}/products?limit=10\u0026page=1\nPurpose: Execute GET {{baseUrl}}/products?limit=10\u0026page=1 and return API response."
+                                                  }
+                                  },
+                                  {
+                                      "name":  "02 - Get Product by ID",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Authorization",
+                                                                         "value":  "Bearer {{accessToken}}"
+                                                                     }
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/products/{{productId}}",
+                                                      "description":  "Request: 02 - Get Product by ID\nMethod: GET\nEndpoint: {{baseUrl}}/products/{{productId}}\nPurpose: Execute GET {{baseUrl}}/products/{{productId}} and return API response."
+                                                  }
+                                  },
+                                  {
+                                      "name":  "03 - Create Product",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     },
+                                                                     {
+                                                                         "key":  "Authorization",
+                                                                         "value":  "Bearer {{accessToken}}"
+                                                                     }
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/products",
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"sku\": \"SKU-NEW-001\",\n  \"name\": \"New Product\",\n  \"description\": \"A new test product\",\n  \"baseCost\": 25.00,\n  \"retailPrice\": 39.99,\n  \"weight\": 1.0\n}"
+                                                               },
+                                                      "description":  "Request: 03 - Create Product\nMethod: POST\nEndpoint: {{baseUrl}}/products\nPurpose: Execute POST {{baseUrl}}/products and return API response."
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "exec":  [
+                                                                                    "var jsonData = pm.response.json();",
+                                                                                    "if (jsonData.id) {",
+                                                                                    "    pm.environment.set(\u0027productId\u0027, jsonData.id);",
+                                                                                    "}"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ]
+                                  },
+                                  {
+                                      "name":  "04 - Update Product",
+                                      "request":  {
+                                                      "method":  "PUT",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     },
+                                                                     {
+                                                                         "key":  "Authorization",
+                                                                         "value":  "Bearer {{accessToken}}"
+                                                                     }
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/products/{{productId}}",
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"name\": \"Updated Product\",\n  \"retailPrice\": 34.99\n}"
+                                                               },
+                                                      "description":  "Request: 04 - Update Product\nMethod: PUT\nEndpoint: {{baseUrl}}/products/{{productId}}\nPurpose: Execute PUT {{baseUrl}}/products/{{productId}} and return API response."
+                                                  }
+                                  },
+                                  {
+                                      "name":  "05 - Delete Product",
+                                      "request":  {
+                                                      "method":  "DELETE",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Authorization",
+                                                                         "value":  "Bearer {{accessToken}}"
+                                                                     }
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/products/{{productId}}",
+                                                      "description":  "Request: 05 - Delete Product\nMethod: DELETE\nEndpoint: {{baseUrl}}/products/{{productId}}\nPurpose: Execute DELETE {{baseUrl}}/products/{{productId}} and return API response."
+                                                  }
+                                  },
+                                  {
+                                      "name":  "06 - Upload Product Image",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     },
+                                                                     {
+                                                                         "key":  "Authorization",
+                                                                         "value":  "Bearer {{accessToken}}"
+                                                                     }
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/products/{{productId}}/images",
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"url\": \"https://example.com/image.jpg\",\n  \"isPrimary\": true\n}"
+                                                               },
+                                                      "description":  "Request: 06 - Upload Product Image\nMethod: POST\nEndpoint: {{baseUrl}}/products/{{productId}}/images\nPurpose: Execute POST {{baseUrl}}/products/{{productId}}/images and return API response."
+                                                  }
+                                  }
+                              ]
+                 },
+                 {
+                     "name":  "📍 Locations",
+                     "item":  [
+                                  {
+                                      "name":  "01 - List Locations",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Authorization",
+                                                                         "value":  "Bearer {{accessToken}}"
+                                                                     }
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/locations",
+                                                      "description":  "Request: 01 - List Locations\nMethod: GET\nEndpoint: {{baseUrl}}/locations\nPurpose: Execute GET {{baseUrl}}/locations and return API response."
+                                                  }
+                                  },
+                                  {
+                                      "name":  "02 - Get Location by ID",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Authorization",
+                                                                         "value":  "Bearer {{accessToken}}"
+                                                                     }
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/locations/{{locationId}}",
+                                                      "description":  "Request: 02 - Get Location by ID\nMethod: GET\nEndpoint: {{baseUrl}}/locations/{{locationId}}\nPurpose: Execute GET {{baseUrl}}/locations/{{locationId}} and return API response."
+                                                  }
+                                  },
+                                  {
+                                      "name":  "03 - Create Location",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     },
+                                                                     {
+                                                                         "key":  "Authorization",
+                                                                         "value":  "Bearer {{accessToken}}"
+                                                                     }
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/locations",
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"name\": \"New Warehouse\",\n  \"type\": \"warehouse\",\n  \"address\": \"789 Industrial Blvd\"\n}"
+                                                               },
+                                                      "description":  "Request: 03 - Create Location\nMethod: POST\nEndpoint: {{baseUrl}}/locations\nPurpose: Execute POST {{baseUrl}}/locations and return API response."
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "exec":  [
+                                                                                    "var jsonData = pm.response.json();",
+                                                                                    "if (jsonData.id) {",
+                                                                                    "    pm.environment.set(\u0027locationId\u0027, jsonData.id);",
+                                                                                    "}"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ]
+                                  },
+                                  {
+                                      "name":  "04 - Update Location",
+                                      "request":  {
+                                                      "method":  "PUT",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     },
+                                                                     {
+                                                                         "key":  "Authorization",
+                                                                         "value":  "Bearer {{accessToken}}"
+                                                                     }
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/locations/{{locationId}}",
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"address\": \"Updated Address: 456 Main Street\"\n}"
+                                                               },
+                                                      "description":  "Request: 04 - Update Location\nMethod: PUT\nEndpoint: {{baseUrl}}/locations/{{locationId}}\nPurpose: Execute PUT {{baseUrl}}/locations/{{locationId}} and return API response."
+                                                  }
+                                  },
+                                  {
+                                      "name":  "05 - Delete Location",
+                                      "request":  {
+                                                      "method":  "DELETE",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Authorization",
+                                                                         "value":  "Bearer {{accessToken}}"
+                                                                     }
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/locations/{{locationId}}",
+                                                      "description":  "Request: 05 - Delete Location\nMethod: DELETE\nEndpoint: {{baseUrl}}/locations/{{locationId}}\nPurpose: Execute DELETE {{baseUrl}}/locations/{{locationId}} and return API response."
+                                                  }
+                                  }
+                              ]
+                 },
+                 {
+                     "name":  "📊 Inventory",
+                     "item":  [
+                                  {
+                                      "name":  "01 - List Inventory",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Authorization",
+                                                                         "value":  "Bearer {{accessToken}}"
+                                                                     }
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/inventory?limit=10\u0026page=1",
+                                                      "description":  "Request: 01 - List Inventory\nMethod: GET\nEndpoint: {{baseUrl}}/inventory?limit=10\u0026page=1\nPurpose: Execute GET {{baseUrl}}/inventory?limit=10\u0026page=1 and return API response."
+                                                  }
+                                  },
+                                  {
+                                      "name":  "02 - Get Inventory by ID",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Authorization",
+                                                                         "value":  "Bearer {{accessToken}}"
+                                                                     }
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/inventory/{{inventoryId}}",
+                                                      "description":  "Request: 02 - Get Inventory by ID\nMethod: GET\nEndpoint: {{baseUrl}}/inventory/{{inventoryId}}\nPurpose: Execute GET {{baseUrl}}/inventory/{{inventoryId}} and return API response."
+                                                  }
+                                  },
+                                  {
+                                      "name":  "03 - Create Inventory Record",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     },
+                                                                     {
+                                                                         "key":  "Authorization",
+                                                                         "value":  "Bearer {{accessToken}}"
+                                                                     }
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/inventory",
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"productId\": \"{{productId}}\",\n  \"locationId\": \"{{locationId}}\",\n  \"quantity\": 100,\n  \"reservedQuantity\": 0\n}"
+                                                               },
+                                                      "description":  "Request: 03 - Create Inventory Record\nMethod: POST\nEndpoint: {{baseUrl}}/inventory\nPurpose: Execute POST {{baseUrl}}/inventory and return API response."
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "exec":  [
+                                                                                    "var jsonData = pm.response.json();",
+                                                                                    "if (jsonData.id) {",
+                                                                                    "    pm.environment.set(\u0027inventoryId\u0027, jsonData.id);",
+                                                                                    "}"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ]
+                                  },
+                                  {
+                                      "name":  "04 - Update Inventory",
+                                      "request":  {
+                                                      "method":  "PUT",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     },
+                                                                     {
+                                                                         "key":  "Authorization",
+                                                                         "value":  "Bearer {{accessToken}}"
+                                                                     }
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/inventory/{{inventoryId}}",
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"quantity\": 150,\n  \"reservedQuantity\": 10\n}"
+                                                               },
+                                                      "description":  "Request: 04 - Update Inventory\nMethod: PUT\nEndpoint: {{baseUrl}}/inventory/{{inventoryId}}\nPurpose: Execute PUT {{baseUrl}}/inventory/{{inventoryId}} and return API response."
+                                                  }
+                                  },
+                                  {
+                                      "name":  "05 - Delete Inventory",
+                                      "request":  {
+                                                      "method":  "DELETE",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Authorization",
+                                                                         "value":  "Bearer {{accessToken}}"
+                                                                     }
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/inventory/{{inventoryId}}",
+                                                      "description":  "Request: 05 - Delete Inventory\nMethod: DELETE\nEndpoint: {{baseUrl}}/inventory/{{inventoryId}}\nPurpose: Execute DELETE {{baseUrl}}/inventory/{{inventoryId}} and return API response."
+                                                  }
+                                  },
+                                  {
+                                      "name":  "06 - Adjust Inventory",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     },
+                                                                     {
+                                                                         "key":  "Authorization",
+                                                                         "value":  "Bearer {{accessToken}}"
+                                                                     }
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/inventory/adjust",
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"productId\": \"{{productId}}\",\n  \"locationId\": \"{{locationId}}\",\n  \"newQuantity\": 50,\n  \"reason\": \"Stock adjustment from Postman\"\n}"
+                                                               },
+                                                      "description":  "Request: 06 - Adjust Inventory\nMethod: POST\nEndpoint: {{baseUrl}}/inventory/adjust\nPurpose: Execute POST {{baseUrl}}/inventory/adjust and return API response."
+                                                  }
+                                  },
+                                  {
+                                      "name":  "07 - List Inventory Movements",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Authorization",
+                                                                         "value":  "Bearer {{accessToken}}"
+                                                                     }
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/inventory/movements?limit=10\u0026page=1",
+                                                      "description":  "Request: 07 - List Inventory Movements\nMethod: GET\nEndpoint: {{baseUrl}}/inventory/movements?limit=10\u0026page=1\nPurpose: Execute GET {{baseUrl}}/inventory/movements?limit=10\u0026page=1 and return API response."
+                                                  }
+                                  },
+                                  {
+                                      "name":  "08 - Get Movement by ID",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Authorization",
+                                                                         "value":  "Bearer {{accessToken}}"
+                                                                     }
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/inventory/movements/{{movementId}}",
+                                                      "description":  "Request: 08 - Get Movement by ID\nMethod: GET\nEndpoint: {{baseUrl}}/inventory/movements/{{movementId}}\nPurpose: Execute GET {{baseUrl}}/inventory/movements/{{movementId}} and return API response."
+                                                  }
+                                  }
+                              ]
+                 },
+                 {
+                     "name":  "🚚 Transfers",
+                     "item":  [
+                                  {
+                                      "name":  "01 - List Transfers",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Authorization",
+                                                                         "value":  "Bearer {{accessToken}}"
+                                                                     }
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/transfers",
+                                                      "description":  "Request: 01 - List Transfers\nMethod: GET\nEndpoint: {{baseUrl}}/transfers\nPurpose: Execute GET {{baseUrl}}/transfers and return API response."
+                                                  }
+                                  },
+                                  {
+                                      "name":  "02 - Get Transfer by ID",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Authorization",
+                                                                         "value":  "Bearer {{accessToken}}"
+                                                                     }
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/transfers/{{transferId}}",
+                                                      "description":  "Request: 02 - Get Transfer by ID\nMethod: GET\nEndpoint: {{baseUrl}}/transfers/{{transferId}}\nPurpose: Execute GET {{baseUrl}}/transfers/{{transferId}} and return API response."
+                                                  }
+                                  },
+                                  {
+                                      "name":  "03 - Create Transfer",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     },
+                                                                     {
+                                                                         "key":  "Authorization",
+                                                                         "value":  "Bearer {{accessToken}}"
+                                                                     }
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/transfers",
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"fromLocationId\": \"{{locationId}}\",\n  \"toLocationId\": \"{{toLocationId}}\",\n  \"items\": [\n    {\n      \"productId\": \"{{productId}}\",\n      \"quantity\": 10\n    }\n  ],\n  \"notes\": \"Transfer for restocking\"\n}"
+                                                               },
+                                                      "description":  "Request: 03 - Create Transfer\nMethod: POST\nEndpoint: {{baseUrl}}/transfers\nPurpose: Execute POST {{baseUrl}}/transfers and return API response."
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "exec":  [
+                                                                                    "var jsonData = pm.response.json();",
+                                                                                    "if (jsonData.id) {",
+                                                                                    "    pm.environment.set(\u0027transferId\u0027, jsonData.id);",
+                                                                                    "}"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ]
+                                  },
+                                  {
+                                      "name":  "04 - Approve Transfer",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     },
+                                                                     {
+                                                                         "key":  "Authorization",
+                                                                         "value":  "Bearer {{accessToken}}"
+                                                                     }
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/transfers/{{transferId}}/approve",
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"approved\": true,\n  \"notes\": \"Approved\"\n}"
+                                                               },
+                                                      "description":  "Request: 04 - Approve Transfer\nMethod: POST\nEndpoint: {{baseUrl}}/transfers/{{transferId}}/approve\nPurpose: Execute POST {{baseUrl}}/transfers/{{transferId}}/approve and return API response."
+                                                  }
+                                  },
+                                  {
+                                      "name":  "05 - Ship Transfer",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     },
+                                                                     {
+                                                                         "key":  "Authorization",
+                                                                         "value":  "Bearer {{accessToken}}"
+                                                                     }
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/transfers/{{transferId}}/ship",
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"carrier\": \"FedEx\",\n  \"trackingNumber\": \"1234567890\"\n}"
+                                                               },
+                                                      "description":  "Request: 05 - Ship Transfer\nMethod: POST\nEndpoint: {{baseUrl}}/transfers/{{transferId}}/ship\nPurpose: Execute POST {{baseUrl}}/transfers/{{transferId}}/ship and return API response."
+                                                  }
+                                  },
+                                  {
+                                      "name":  "06 - Receive Transfer",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     },
+                                                                     {
+                                                                         "key":  "Authorization",
+                                                                         "value":  "Bearer {{accessToken}}"
+                                                                     }
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/transfers/{{transferId}}/receive",
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"items\": [\n    {\n      \"productId\": \"{{productId}}\",\n      \"receivedQuantity\": 10\n    }\n  ]\n}"
+                                                               },
+                                                      "description":  "Request: 06 - Receive Transfer\nMethod: POST\nEndpoint: {{baseUrl}}/transfers/{{transferId}}/receive\nPurpose: Execute POST {{baseUrl}}/transfers/{{transferId}}/receive and return API response."
+                                                  }
+                                  }
+                              ]
+                 },
+                 {
+                     "name":  "🏭 Suppliers",
+                     "item":  [
+                                  {
+                                      "name":  "01 - List Suppliers",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Authorization",
+                                                                         "value":  "Bearer {{accessToken}}"
+                                                                     }
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/suppliers",
+                                                      "description":  "Request: 01 - List Suppliers\nMethod: GET\nEndpoint: {{baseUrl}}/suppliers\nPurpose: Execute GET {{baseUrl}}/suppliers and return API response."
+                                                  }
+                                  },
+                                  {
+                                      "name":  "02 - Get Supplier by ID",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Authorization",
+                                                                         "value":  "Bearer {{accessToken}}"
+                                                                     }
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/suppliers/{{supplierId}}",
+                                                      "description":  "Request: 02 - Get Supplier by ID\nMethod: GET\nEndpoint: {{baseUrl}}/suppliers/{{supplierId}}\nPurpose: Execute GET {{baseUrl}}/suppliers/{{supplierId}} and return API response."
+                                                  }
+                                  },
+                                  {
+                                      "name":  "03 - Create Supplier",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     },
+                                                                     {
+                                                                         "key":  "Authorization",
+                                                                         "value":  "Bearer {{accessToken}}"
+                                                                     }
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/suppliers",
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"name\": \"New Supplier Inc\",\n  \"email\": \"contact@newsupplier.com\",\n  \"phone\": \"+9876543210\",\n  \"address\": \"123 Supplier Way\"\n}"
+                                                               },
+                                                      "description":  "Request: 03 - Create Supplier\nMethod: POST\nEndpoint: {{baseUrl}}/suppliers\nPurpose: Execute POST {{baseUrl}}/suppliers and return API response."
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "exec":  [
+                                                                                    "var jsonData = pm.response.json();",
+                                                                                    "if (jsonData.id) {",
+                                                                                    "    pm.environment.set(\u0027supplierId\u0027, jsonData.id);",
+                                                                                    "}"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ]
+                                  },
+                                  {
+                                      "name":  "04 - Update Supplier",
+                                      "request":  {
+                                                      "method":  "PUT",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     },
+                                                                     {
+                                                                         "key":  "Authorization",
+                                                                         "value":  "Bearer {{accessToken}}"
+                                                                     }
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/suppliers/{{supplierId}}",
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"name\": \"Updated Supplier Inc\"\n}"
+                                                               },
+                                                      "description":  "Request: 04 - Update Supplier\nMethod: PUT\nEndpoint: {{baseUrl}}/suppliers/{{supplierId}}\nPurpose: Execute PUT {{baseUrl}}/suppliers/{{supplierId}} and return API response."
+                                                  }
+                                  },
+                                  {
+                                      "name":  "05 - Delete Supplier",
+                                      "request":  {
+                                                      "method":  "DELETE",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Authorization",
+                                                                         "value":  "Bearer {{accessToken}}"
+                                                                     }
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/suppliers/{{supplierId}}",
+                                                      "description":  "Request: 05 - Delete Supplier\nMethod: DELETE\nEndpoint: {{baseUrl}}/suppliers/{{supplierId}}\nPurpose: Execute DELETE {{baseUrl}}/suppliers/{{supplierId}} and return API response."
+                                                  }
+                                  },
+                                  {
+                                      "name":  "06 - List Supplier Products",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Authorization",
+                                                                         "value":  "Bearer {{accessToken}}"
+                                                                     }
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/suppliers/{{supplierId}}/products",
+                                                      "description":  "Request: 06 - List Supplier Products\nMethod: GET\nEndpoint: {{baseUrl}}/suppliers/{{supplierId}}/products\nPurpose: Execute GET {{baseUrl}}/suppliers/{{supplierId}}/products and return API response."
+                                                  }
+                                  },
+                                  {
+                                      "name":  "07 - Add Product to Supplier",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     },
+                                                                     {
+                                                                         "key":  "Authorization",
+                                                                         "value":  "Bearer {{accessToken}}"
+                                                                     }
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/suppliers/{{supplierId}}/products",
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"productId\": \"{{productId}}\",\n  \"supplierSku\": \"SUP-SKU-001\",\n  \"price\": 12.50,\n  \"leadTimeDays\": 7\n}"
+                                                               },
+                                                      "description":  "Request: 07 - Add Product to Supplier\nMethod: POST\nEndpoint: {{baseUrl}}/suppliers/{{supplierId}}/products\nPurpose: Execute POST {{baseUrl}}/suppliers/{{supplierId}}/products and return API response."
+                                                  }
+                                  },
+                                  {
+                                      "name":  "08 - Remove Product from Supplier",
+                                      "request":  {
+                                                      "method":  "DELETE",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Authorization",
+                                                                         "value":  "Bearer {{accessToken}}"
+                                                                     }
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/suppliers/{{supplierId}}/products/{{productId}}",
+                                                      "description":  "Request: 08 - Remove Product from Supplier\nMethod: DELETE\nEndpoint: {{baseUrl}}/suppliers/{{supplierId}}/products/{{productId}}\nPurpose: Execute DELETE {{baseUrl}}/suppliers/{{supplierId}}/products/{{productId}} and return API response."
+                                                  }
+                                  }
+                              ]
+                 },
+                 {
+                     "name":  "📝 Purchase Orders",
+                     "item":  [
+                                  {
+                                      "name":  "01 - List Purchase Orders",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Authorization",
+                                                                         "value":  "Bearer {{accessToken}}"
+                                                                     }
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/purchase-orders",
+                                                      "description":  "Request: 01 - List Purchase Orders\nMethod: GET\nEndpoint: {{baseUrl}}/purchase-orders\nPurpose: Execute GET {{baseUrl}}/purchase-orders and return API response."
+                                                  }
+                                  },
+                                  {
+                                      "name":  "02 - Get Purchase Order by ID",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Authorization",
+                                                                         "value":  "Bearer {{accessToken}}"
+                                                                     }
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/purchase-orders/{{purchaseOrderId}}",
+                                                      "description":  "Request: 02 - Get Purchase Order by ID\nMethod: GET\nEndpoint: {{baseUrl}}/purchase-orders/{{purchaseOrderId}}\nPurpose: Execute GET {{baseUrl}}/purchase-orders/{{purchaseOrderId}} and return API response."
+                                                  }
+                                  },
+                                  {
+                                      "name":  "03 - Create Purchase Order",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     },
+                                                                     {
+                                                                         "key":  "Authorization",
+                                                                         "value":  "Bearer {{accessToken}}"
+                                                                     }
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/purchase-orders",
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"supplierId\": \"{{supplierId}}\",\n  \"items\": [\n    {\n      \"productId\": \"{{productId}}\",\n      \"quantity\": 50,\n      \"unitPrice\": 15.00\n    }\n  ],\n  \"expectedDeliveryDate\": \"2026-06-01T00:00:00Z\"\n}"
+                                                               },
+                                                      "description":  "Request: 03 - Create Purchase Order\nMethod: POST\nEndpoint: {{baseUrl}}/purchase-orders\nPurpose: Execute POST {{baseUrl}}/purchase-orders and return API response."
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "exec":  [
+                                                                                    "var jsonData = pm.response.json();",
+                                                                                    "if (jsonData.id) {",
+                                                                                    "    pm.environment.set(\u0027purchaseOrderId\u0027, jsonData.id);",
+                                                                                    "}"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ]
+                                  },
+                                  {
+                                      "name":  "04 - Update Purchase Order",
+                                      "request":  {
+                                                      "method":  "PUT",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     },
+                                                                     {
+                                                                         "key":  "Authorization",
+                                                                         "value":  "Bearer {{accessToken}}"
+                                                                     }
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/purchase-orders/{{purchaseOrderId}}",
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"status\": \"CONFIRMED\"\n}"
+                                                               },
+                                                      "description":  "Request: 04 - Update Purchase Order\nMethod: PUT\nEndpoint: {{baseUrl}}/purchase-orders/{{purchaseOrderId}}\nPurpose: Execute PUT {{baseUrl}}/purchase-orders/{{purchaseOrderId}} and return API response."
+                                                  }
+                                  },
+                                  {
+                                      "name":  "05 - Receive Purchase Order",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     },
+                                                                     {
+                                                                         "key":  "Authorization",
+                                                                         "value":  "Bearer {{accessToken}}"
+                                                                     }
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/purchase-orders/{{purchaseOrderId}}/receive",
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"items\": [\n    {\n      \"productId\": \"{{productId}}\",\n      \"quantityReceived\": 48\n    }\n  ],\n  \"notes\": \"Received with 2 units damaged\"\n}"
+                                                               },
+                                                      "description":  "Request: 05 - Receive Purchase Order\nMethod: POST\nEndpoint: {{baseUrl}}/purchase-orders/{{purchaseOrderId}}/receive\nPurpose: Execute POST {{baseUrl}}/purchase-orders/{{purchaseOrderId}}/receive and return API response."
+                                                  }
+                                  }
+                              ]
+                 },
+                 {
+                     "name":  "↩️ Supplier Returns",
+                     "item":  [
+                                  {
+                                      "name":  "01 - List Returns",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Authorization",
+                                                                         "value":  "Bearer {{accessToken}}"
+                                                                     }
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/supplier-returns",
+                                                      "description":  "Request: 01 - List Returns\nMethod: GET\nEndpoint: {{baseUrl}}/supplier-returns\nPurpose: Execute GET {{baseUrl}}/supplier-returns and return API response."
+                                                  }
+                                  },
+                                  {
+                                      "name":  "02 - Get Return by ID",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Authorization",
+                                                                         "value":  "Bearer {{accessToken}}"
+                                                                     }
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/supplier-returns/{{supplierReturnId}}",
+                                                      "description":  "Request: 02 - Get Return by ID\nMethod: GET\nEndpoint: {{baseUrl}}/supplier-returns/{{supplierReturnId}}\nPurpose: Execute GET {{baseUrl}}/supplier-returns/{{supplierReturnId}} and return API response."
+                                                  }
+                                  },
+                                  {
+                                      "name":  "03 - Create Return",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     },
+                                                                     {
+                                                                         "key":  "Authorization",
+                                                                         "value":  "Bearer {{accessToken}}"
+                                                                     }
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/supplier-returns",
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"supplierId\": \"{{supplierId}}\",\n  \"locationId\": \"{{locationId}}\",\n  \"reason\": \"Defective items\",\n  \"items\": [\n    {\n      \"productId\": \"{{productId}}\",\n      \"quantity\": 5,\n      \"unitPrice\": 12.50,\n      \"reason\": \"Quality issues\"\n    }\n  ]\n}"
+                                                               },
+                                                      "description":  "Request: 03 - Create Return\nMethod: POST\nEndpoint: {{baseUrl}}/supplier-returns\nPurpose: Execute POST {{baseUrl}}/supplier-returns and return API response."
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "exec":  [
+                                                                                    "var jsonData = pm.response.json();",
+                                                                                    "if (jsonData.id) {",
+                                                                                    "    pm.environment.set(\u0027supplierReturnId\u0027, jsonData.id);",
+                                                                                    "}"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ]
+                                  },
+                                  {
+                                      "name":  "04 - Update Return",
+                                      "request":  {
+                                                      "method":  "PUT",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     },
+                                                                     {
+                                                                         "key":  "Authorization",
+                                                                         "value":  "Bearer {{accessToken}}"
+                                                                     }
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/supplier-returns/{{supplierReturnId}}",
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"status\": \"APPROVED\"\n}"
+                                                               },
+                                                      "description":  "Request: 04 - Update Return\nMethod: PUT\nEndpoint: {{baseUrl}}/supplier-returns/{{supplierReturnId}}\nPurpose: Execute PUT {{baseUrl}}/supplier-returns/{{supplierReturnId}} and return API response."
+                                                  }
+                                  },
+                                  {
+                                      "name":  "05 - Ship Return",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     },
+                                                                     {
+                                                                         "key":  "Authorization",
+                                                                         "value":  "Bearer {{accessToken}}"
+                                                                     }
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/supplier-returns/{{supplierReturnId}}/ship",
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"carrier\": \"UPS\",\n  \"trackingNumber\": \"TRACK123456\"\n}"
+                                                               },
+                                                      "description":  "Request: 05 - Ship Return\nMethod: POST\nEndpoint: {{baseUrl}}/supplier-returns/{{supplierReturnId}}/ship\nPurpose: Execute POST {{baseUrl}}/supplier-returns/{{supplierReturnId}}/ship and return API response."
+                                                  }
+                                  },
+                                  {
+                                      "name":  "06 - Receive Return",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     },
+                                                                     {
+                                                                         "key":  "Authorization",
+                                                                         "value":  "Bearer {{accessToken}}"
+                                                                     }
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/supplier-returns/{{supplierReturnId}}/receive",
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{}"
+                                                               },
+                                                      "description":  "Request: 06 - Receive Return\nMethod: POST\nEndpoint: {{baseUrl}}/supplier-returns/{{supplierReturnId}}/receive\nPurpose: Execute POST {{baseUrl}}/supplier-returns/{{supplierReturnId}}/receive and return API response."
+                                                  }
+                                  },
+                                  {
+                                      "name":  "07 - Cancel Return",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     },
+                                                                     {
+                                                                         "key":  "Authorization",
+                                                                         "value":  "Bearer {{accessToken}}"
+                                                                     }
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/supplier-returns/{{supplierReturnId}}/cancel",
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"reason\": \"Cancelled by user\"\n}"
+                                                               },
+                                                      "description":  "Request: 07 - Cancel Return\nMethod: POST\nEndpoint: {{baseUrl}}/supplier-returns/{{supplierReturnId}}/cancel\nPurpose: Execute POST {{baseUrl}}/supplier-returns/{{supplierReturnId}}/cancel and return API response."
+                                                  }
+                                  }
+                              ]
+                 },
+                 {
+                     "name":  "📉 Reorder Points",
+                     "item":  [
+                                  {
+                                      "name":  "01 - List Reorder Points",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Authorization",
+                                                                         "value":  "Bearer {{accessToken}}"
+                                                                     }
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/reorder-points",
+                                                      "description":  "Request: 01 - List Reorder Points\nMethod: GET\nEndpoint: {{baseUrl}}/reorder-points\nPurpose: Execute GET {{baseUrl}}/reorder-points and return API response."
+                                                  }
+                                  },
+                                  {
+                                      "name":  "02 - Get Reorder Point by ID",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Authorization",
+                                                                         "value":  "Bearer {{accessToken}}"
+                                                                     }
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/reorder-points/{{reorderPointId}}",
+                                                      "description":  "Request: 02 - Get Reorder Point by ID\nMethod: GET\nEndpoint: {{baseUrl}}/reorder-points/{{reorderPointId}}\nPurpose: Execute GET {{baseUrl}}/reorder-points/{{reorderPointId}} and return API response."
+                                                  }
+                                  },
+                                  {
+                                      "name":  "03 - Create Reorder Point",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     },
+                                                                     {
+                                                                         "key":  "Authorization",
+                                                                         "value":  "Bearer {{accessToken}}"
+                                                                     }
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/reorder-points",
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"productId\": \"{{productId}}\",\n  \"locationId\": \"{{locationId}}\",\n  \"minQuantity\": 20,\n  \"maxQuantity\": 100\n}"
+                                                               },
+                                                      "description":  "Request: 03 - Create Reorder Point\nMethod: POST\nEndpoint: {{baseUrl}}/reorder-points\nPurpose: Execute POST {{baseUrl}}/reorder-points and return API response."
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "exec":  [
+                                                                                    "var jsonData = pm.response.json();",
+                                                                                    "if (jsonData.id) {",
+                                                                                    "    pm.environment.set(\u0027reorderPointId\u0027, jsonData.id);",
+                                                                                    "}"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ]
+                                  },
+                                  {
+                                      "name":  "04 - Update Reorder Point",
+                                      "request":  {
+                                                      "method":  "PUT",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     },
+                                                                     {
+                                                                         "key":  "Authorization",
+                                                                         "value":  "Bearer {{accessToken}}"
+                                                                     }
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/reorder-points/{{reorderPointId}}",
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"minQuantity\": 15,\n  \"maxQuantity\": 120\n}"
+                                                               },
+                                                      "description":  "Request: 04 - Update Reorder Point\nMethod: PUT\nEndpoint: {{baseUrl}}/reorder-points/{{reorderPointId}}\nPurpose: Execute PUT {{baseUrl}}/reorder-points/{{reorderPointId}} and return API response."
+                                                  }
+                                  },
+                                  {
+                                      "name":  "05 - Delete Reorder Point",
+                                      "request":  {
+                                                      "method":  "DELETE",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Authorization",
+                                                                         "value":  "Bearer {{accessToken}}"
+                                                                     }
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/reorder-points/{{reorderPointId}}",
+                                                      "description":  "Request: 05 - Delete Reorder Point\nMethod: DELETE\nEndpoint: {{baseUrl}}/reorder-points/{{reorderPointId}}\nPurpose: Execute DELETE {{baseUrl}}/reorder-points/{{reorderPointId}} and return API response."
+                                                  }
+                                  }
+                              ]
+                 },
+                 {
+                     "name":  "🔔 Notifications",
+                     "item":  [
+                                  {
+                                      "name":  "01 - List Notifications",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Authorization",
+                                                                         "value":  "Bearer {{accessToken}}"
+                                                                     }
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/notifications",
+                                                      "description":  "Request: 01 - List Notifications\nMethod: GET\nEndpoint: {{baseUrl}}/notifications\nPurpose: Execute GET {{baseUrl}}/notifications and return API response."
+                                                  }
+                                  },
+                                  {
+                                      "name":  "02 - Get Unread Count",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Authorization",
+                                                                         "value":  "Bearer {{accessToken}}"
+                                                                     }
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/notifications/unread-count",
+                                                      "description":  "Request: 02 - Get Unread Count\nMethod: GET\nEndpoint: {{baseUrl}}/notifications/unread-count\nPurpose: Execute GET {{baseUrl}}/notifications/unread-count and return API response."
+                                                  }
+                                  },
+                                  {
+                                      "name":  "03 - Mark As Read",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     },
+                                                                     {
+                                                                         "key":  "Authorization",
+                                                                         "value":  "Bearer {{accessToken}}"
+                                                                     }
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/notifications/{{notificationId}}/read",
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{}"
+                                                               },
+                                                      "description":  "Request: 03 - Mark As Read\nMethod: POST\nEndpoint: {{baseUrl}}/notifications/{{notificationId}}/read\nPurpose: Execute POST {{baseUrl}}/notifications/{{notificationId}}/read and return API response."
+                                                  }
+                                  },
+                                  {
+                                      "name":  "04 - Mark All as Read",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     },
+                                                                     {
+                                                                         "key":  "Authorization",
+                                                                         "value":  "Bearer {{accessToken}}"
+                                                                     }
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/notifications/mark-all-read",
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{}"
+                                                               },
+                                                      "description":  "Request: 04 - Mark All as Read\nMethod: POST\nEndpoint: {{baseUrl}}/notifications/mark-all-read\nPurpose: Execute POST {{baseUrl}}/notifications/mark-all-read and return API response."
+                                                  }
+                                  },
+                                  {
+                                      "name":  "05 - Delete Notification",
+                                      "request":  {
+                                                      "method":  "DELETE",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Authorization",
+                                                                         "value":  "Bearer {{accessToken}}"
+                                                                     }
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/notifications/{{notificationId}}",
+                                                      "description":  "Request: 05 - Delete Notification\nMethod: DELETE\nEndpoint: {{baseUrl}}/notifications/{{notificationId}}\nPurpose: Execute DELETE {{baseUrl}}/notifications/{{notificationId}} and return API response."
+                                                  }
+                                  }
+                              ]
+                 },
+                 {
+                     "name":  "📈 Reports \u0026 Audit",
+                     "item":  [
+                                  {
+                                      "name":  "01 - Low Stock Report",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Authorization",
+                                                                         "value":  "Bearer {{accessToken}}"
+                                                                     }
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/reports/low-stock",
+                                                      "description":  "Request: 01 - Low Stock Report\nMethod: GET\nEndpoint: {{baseUrl}}/reports/low-stock\nPurpose: Execute GET {{baseUrl}}/reports/low-stock and return API response."
+                                                  }
+                                  },
+                                  {
+                                      "name":  "02 - List Audit Logs",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Authorization",
+                                                                         "value":  "Bearer {{accessToken}}"
+                                                                     }
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/audit-logs?limit=10\u0026page=1",
+                                                      "description":  "Request: 02 - List Audit Logs\nMethod: GET\nEndpoint: {{baseUrl}}/audit-logs?limit=10\u0026page=1\nPurpose: Execute GET {{baseUrl}}/audit-logs?limit=10\u0026page=1 and return API response."
+                                                  }
+                                  }
+                              ]
+                 },
+                 {
+                     "name":  "🏢 Tenants (Super Admin)",
+                     "item":  [
+                                  {
+                                      "name":  "01 - Create Tenant",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     },
+                                                                     {
+                                                                         "key":  "Authorization",
+                                                                         "value":  "Bearer {{superAdminAccessToken}}"
+                                                                     }
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/tenants",
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"name\": \"New Tenant Co\"\n}"
+                                                               },
+                                                      "description":  "Request: 01 - Create Tenant\nMethod: POST\nEndpoint: {{baseUrl}}/tenants\nPurpose: Execute POST {{baseUrl}}/tenants and return API response."
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "exec":  [
+                                                                                    "var jsonData = pm.response.json();",
+                                                                                    "if (jsonData.id) {",
+                                                                                    "    pm.environment.set(\u0027tenantId\u0027, jsonData.id);",
+                                                                                    "}"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ]
+                                  }
+                              ]
+                 },
+                 {
+                     "name":  "⚙️ System (Super Admin)",
+                     "item":  [
+                                  {
+                                      "name":  "01 - Get System Limits",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Authorization",
+                                                                         "value":  "Bearer {{superAdminAccessToken}}"
+                                                                     }
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/system/limits",
+                                                      "description":  "Request: 01 - Get System Limits\nMethod: GET\nEndpoint: {{baseUrl}}/system/limits\nPurpose: Execute GET {{baseUrl}}/system/limits and return API response."
+                                                  }
+                                  },
+                                  {
+                                      "name":  "02 - Get System Status",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Authorization",
+                                                                         "value":  "Bearer {{superAdminAccessToken}}"
+                                                                     }
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/system/status",
+                                                      "description":  "Request: 02 - Get System Status\nMethod: GET\nEndpoint: {{baseUrl}}/system/status\nPurpose: Execute GET {{baseUrl}}/system/status and return API response."
+                                                  }
+                                  }
+                              ]
+                 },
+                 {
+                     "name":  "📊 Analytics (Super Admin)",
+                     "item":  [
+                                  {
+                                      "name":  "01 - Cross-Tenant Analytics",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Authorization",
+                                                                         "value":  "Bearer {{superAdminAccessToken}}"
+                                                                     }
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/analytics/cross-tenant",
+                                                      "description":  "Request: 01 - Cross-Tenant Analytics\nMethod: GET\nEndpoint: {{baseUrl}}/analytics/cross-tenant\nPurpose: Execute GET {{baseUrl}}/analytics/cross-tenant and return API response."
+                                                  }
+                                  },
+                                  {
+                                      "name":  "02 - System Metrics",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Authorization",
+                                                                         "value":  "Bearer {{superAdminAccessToken}}"
+                                                                     }
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/analytics/system-metrics",
+                                                      "description":  "Request: 02 - System Metrics\nMethod: GET\nEndpoint: {{baseUrl}}/analytics/system-metrics\nPurpose: Execute GET {{baseUrl}}/analytics/system-metrics and return API response."
+                                                  }
+                                  }
+                              ]
+                 },
+                 {
+                     "name":  "🏥 Health",
+                     "item":  [
+                                  {
+                                      "name":  "01 - Health Check",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/health",
+                                                      "description":  "Request: 01 - Health Check\nMethod: GET\nEndpoint: {{baseUrl}}/health\nPurpose: Execute GET {{baseUrl}}/health and return API response."
+                                                  }
+                                  }
+                              ]
+                 }
+             ]
 }
+

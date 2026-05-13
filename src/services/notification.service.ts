@@ -1,5 +1,7 @@
 import { tenantDb } from '../config/database';
 import { logger } from '../config/logger';
+import { emailService } from './email.service';
+import { UserRole } from '@prisma/client';
 
 export interface CreateNotificationInput {
   type: string;
@@ -169,31 +171,175 @@ class NotificationService {
     return notifications;
   }
 
-  // Notification templates for common events
+  /**
+   * Get managers for a tenant to send email notifications
+   */
+  private async getManagersForEmail(tenantId: string): Promise<Array<{ email: string; firstName: string }>> {
+    const managers = await (tenantDb as any).user.findMany({
+      where: {
+        tenantId,
+        role: { in: [UserRole.TENANT_ADMIN, UserRole.REGIONAL_MANAGER, UserRole.STORE_MANAGER] },
+        isActive: true,
+      },
+      select: { email: true, firstName: true },
+    });
+    return managers;
+  }
+
+  // ==================== BUSINESS EVENT NOTIFICATIONS ====================
+
+  /**
+   * 1. LOW STOCK ALERT - Email + In-app notification
+   */
   async notifyLowStock(
     tenantId: string,
     productId: string,
     productName: string,
+    locationName: string,
     currentStock: number,
     minStockLevel: number,
-    userIds?: string[]
+    recommendedQuantity: number
   ): Promise<Notification> {
-    const message = `Low stock alert: ${productName} is below minimum level (${currentStock}/${minStockLevel})`;
+    const message = `Low stock alert: ${productName} at ${locationName} is below minimum level (${currentStock}/${minStockLevel})`;
     
-    if (userIds && userIds.length > 0) {
-      await this.createBulk(tenantId, userIds, {
-        type: 'LOW_STOCK',
-        message,
-        metadata: { productId, currentStock, minStockLevel },
-      });
-    }
-
-    return this.create(tenantId, {
+    // Create in-app notification
+    const notification = await this.create(tenantId, {
       type: 'LOW_STOCK',
       message,
-      metadata: { productId, currentStock, minStockLevel },
+      metadata: { productId, currentStock, minStockLevel, locationName, recommendedQuantity },
     });
+
+    // Send email to managers
+    try {
+      const managers = await this.getManagersForEmail(tenantId);
+      for (const manager of managers) {
+        emailService.sendBusinessEvent({
+          to: manager.email,
+          firstName: manager.firstName || 'Manager',
+          eventType: 'warning',
+          title: '⚠️ Low Stock Alert',
+          message: `${productName} at ${locationName} is running low on stock. Please review and consider placing a new order.`,
+          details: {
+            'Product': productName,
+            'Location': locationName,
+            'Current Stock': currentStock,
+            'Minimum Level': minStockLevel,
+            'Recommended Order': recommendedQuantity,
+            'Status': 'ACTION REQUIRED',
+          },
+        }).catch(err => {
+          logger.error({ err, email: manager.email }, 'Failed to send low stock email');
+        });
+      }
+    } catch (error) {
+      logger.error({ err: error }, 'Failed to notify managers about low stock');
+    }
+
+    return notification;
   }
+
+  /**
+   * 2. TRANSFER APPROVAL REQUIRED - Email + In-app notification
+   */
+  async notifyTransferApprovalRequired(
+    tenantId: string,
+    transferId: string,
+    fromLocation: string,
+    toLocation: string,
+    totalValue: number,
+    itemCount: number,
+    createdBy: string
+  ): Promise<Notification> {
+    const message = `Transfer from ${fromLocation} to ${toLocation} ($${totalValue.toFixed(2)}) requires your approval`;
+
+    // Create in-app notification
+    const notification = await this.create(tenantId, {
+      type: 'TRANSFER_APPROVAL_REQUIRED',
+      message,
+      metadata: { transferId, fromLocation, toLocation, totalValue, itemCount },
+    });
+
+    // Send email to managers
+    try {
+      const managers = await this.getManagersForEmail(tenantId);
+      for (const manager of managers) {
+        emailService.sendBusinessEvent({
+          to: manager.email,
+          firstName: manager.firstName || 'Manager',
+          eventType: 'warning',
+          title: '🔔 Transfer Approval Required',
+          message: `A new transfer order has been created and requires your approval before it can be processed.`,
+          details: {
+            'Transfer ID': transferId,
+            'From Location': fromLocation,
+            'To Location': toLocation,
+            'Total Value': `$${totalValue.toFixed(2)}`,
+            'Number of Items': itemCount,
+            'Created By': createdBy,
+            'Status': 'PENDING APPROVAL',
+          },
+        }).catch(err => {
+          logger.error({ err, email: manager.email }, 'Failed to send transfer approval email');
+        });
+      }
+    } catch (error) {
+      logger.error({ err: error }, 'Failed to notify managers about transfer approval');
+    }
+
+    return notification;
+  }
+
+  /**
+   * 3. DEAD STOCK DISCOUNT APPLIED - Email + In-app notification
+   */
+  async notifyDeadStockDiscount(
+    tenantId: string,
+    productId: string,
+    productName: string,
+    daysInInventory: number,
+    oldPrice: number,
+    newPrice: number,
+    discountPercent: number
+  ): Promise<Notification> {
+    const message = `Dead stock discount applied: ${productName} price reduced by ${discountPercent}% ($${oldPrice.toFixed(2)} → $${newPrice.toFixed(2)})`;
+
+    // Create in-app notification
+    const notification = await this.create(tenantId, {
+      type: 'DEAD_STOCK_DISCOUNT',
+      message,
+      metadata: { productId, daysInInventory, oldPrice, newPrice, discountPercent },
+    });
+
+    // Send email to managers
+    try {
+      const managers = await this.getManagersForEmail(tenantId);
+      for (const manager of managers) {
+        emailService.sendBusinessEvent({
+          to: manager.email,
+          firstName: manager.firstName || 'Manager',
+          eventType: 'success',
+          title: '💰 Dead Stock Discount Applied',
+          message: `An automatic discount has been applied to ${productName} to help move dead stock inventory.`,
+          details: {
+            'Product': productName,
+            'Days in Inventory': daysInInventory,
+            'Old Price': `$${oldPrice.toFixed(2)}`,
+            'New Price': `$${newPrice.toFixed(2)}`,
+            'Discount': `${discountPercent}%`,
+            'Status': 'AUTO-APPLIED',
+          },
+        }).catch(err => {
+          logger.error({ err, email: manager.email }, 'Failed to send dead stock discount email');
+        });
+      }
+    } catch (error) {
+      logger.error({ err: error }, 'Failed to notify managers about dead stock discount');
+    }
+
+    return notification;
+  }
+
+  // ==================== ADDITIONAL NOTIFICATIONS ====================
 
   async notifyTransferCreated(
     tenantId: string,
