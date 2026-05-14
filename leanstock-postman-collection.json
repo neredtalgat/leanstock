@@ -1288,11 +1288,25 @@
                                                                      }
                                                                  ],
                                                       "url":  "{{baseUrl}}/reorder-points",
-                                                      "description":  "Request: 01 - List Reorder Points\nMethod: GET\nEndpoint: {{baseUrl}}/reorder-points\nPurpose: Execute GET {{baseUrl}}/reorder-points and return API response."
+                                                      "description":  "List all reorder points with product and location info.\n\nResponse includes:\n- id, productId, locationId, minQuantity, maxQuantity\n- product: {id, sku, name}\n- createdAt, updatedAt"
                                                   }
                                   },
                                   {
-                                      "name":  "02 - Get Reorder Point by ID",
+                                      "name":  "02 - List Low Stock (Action Needed)",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Authorization",
+                                                                         "value":  "Bearer {{accessToken}}"
+                                                                     }
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/reorder-points?lowStock=true",
+                                                      "description":  "Get products with stock <= minQuantity.\n\nQuery: ?lowStock=true\n\nResponse includes:\n- currentStock: actual quantity\n- reservedStock: reserved quantity\n- All reorder point fields"
+                                                  }
+                                  },
+                                  {
+                                      "name":  "03 - Get Reorder Point by ID",
                                       "request":  {
                                                       "method":  "GET",
                                                       "header":  [
@@ -1306,7 +1320,7 @@
                                                   }
                                   },
                                   {
-                                      "name":  "03 - Create Reorder Point",
+                                      "name":  "04 - Create Reorder Point",
                                       "request":  {
                                                       "method":  "POST",
                                                       "header":  [
@@ -1341,7 +1355,7 @@
                                                 ]
                                   },
                                   {
-                                      "name":  "04 - Update Reorder Point",
+                                      "name":  "05 - Update Reorder Point",
                                       "request":  {
                                                       "method":  "PUT",
                                                       "header":  [
@@ -1363,7 +1377,7 @@
                                                   }
                                   },
                                   {
-                                      "name":  "05 - Delete Reorder Point",
+                                      "name":  "06 - Delete Reorder Point",
                                       "request":  {
                                                       "method":  "DELETE",
                                                       "header":  [
@@ -1524,7 +1538,7 @@
                                                                    "mode":  "raw",
                                                                    "raw":  "{\n  \"name\": \"New Tenant Co\"\n}"
                                                                },
-                                                      "description":  "Request: 01 - Create Tenant\nMethod: POST\nEndpoint: {{baseUrl}}/tenants\nPurpose: Execute POST {{baseUrl}}/tenants and return API response."
+                                                      "description":  "Request: 01 - Create Tenant\nMethod: POST\nEndpoint: {{baseUrl}}/tenants\nPurpose: Create tenant without admin user."
                                                   },
                                       "event":  [
                                                     {
@@ -1532,8 +1546,46 @@
                                                         "script":  {
                                                                        "exec":  [
                                                                                     "var jsonData = pm.response.json();",
-                                                                                    "if (jsonData.id) {",
-                                                                                    "    pm.environment.set(\u0027tenantId\u0027, jsonData.id);",
+                                                                                    "if (jsonData.id || jsonData.tenant?.id) {",
+                                                                                    "    pm.environment.set(\u0027tenantId\u0027, jsonData.id || jsonData.tenant.id);",
+                                                                                    "}"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ]
+                                  },
+                                  {
+                                      "name":  "02 - Create Tenant with Admin",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     },
+                                                                     {
+                                                                         "key":  "Authorization",
+                                                                         "value":  "Bearer {{superAdminAccessToken}}"
+                                                                     }
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/tenants",
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"name\": \"New Tenant With Admin\",\n  \"adminEmail\": \"admin@newtenant.com\",\n  \"adminFirstName\": \"John\",\n  \"adminLastName\": \"Doe\"\n}"
+                                                               },
+                                                      "description":  "Request: 02 - Create Tenant with Admin\nMethod: POST\nEndpoint: {{baseUrl}}/tenants\nPurpose: Create tenant and auto-create admin user with invite token. Returns inviteToken and inviteLink for the admin."
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "exec":  [
+                                                                                    "var jsonData = pm.response.json();",
+                                                                                    "if (jsonData.tenant?.id) {",
+                                                                                    "    pm.environment.set(\u0027tenantId\u0027, jsonData.tenant.id);",
+                                                                                    "}",
+                                                                                    "if (jsonData.admin?.inviteToken) {",
+                                                                                    "    pm.environment.set(\u0027inviteToken\u0027, jsonData.admin.inviteToken);",
                                                                                     "}"
                                                                                 ]
                                                                    }

@@ -4,7 +4,7 @@ import * as authController from '../controllers/auth.controller';
 import { validate } from '../middleware/validate';
 import { authenticate } from '../middleware/auth';
 import { authRateLimit } from '../middleware/rateLimit';
-import { registerSchema, loginSchema, refreshSchema, inviteSchema, registerInviteSchema } from '../schemas/auth.schema';
+import { loginSchema, refreshSchema, inviteSchema, registerInviteSchema } from '../schemas/auth.schema';
 import { requirePermission } from '../middleware/rbac';
 
 const router = Router();

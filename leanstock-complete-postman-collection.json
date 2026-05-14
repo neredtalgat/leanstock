@@ -269,7 +269,7 @@
                      "name":  "🏢 Tenants (SUPER_ADMIN)",
                      "item":  [
                                   {
-                                      "name":  "POST /tenants",
+                                      "name":  "POST /tenants (basic)",
                                       "request":  {
                                                       "method":  "POST",
                                                       "header":  [
@@ -287,7 +287,7 @@
                                                                    "mode":  "raw",
                                                                    "raw":  "{\n  \"name\": \"New Tenant Co\"\n}"
                                                                },
-                                                      "description":  "Request: POST /tenants\nMethod: POST\nEndpoint: {{baseUrl}}/tenants\nPurpose: Execute POST {{baseUrl}}/tenants and return API response."
+                                                      "description":  "Create tenant without admin user.\n\nRequest: POST /tenants\nMethod: POST\nEndpoint: {{baseUrl}}/tenants"
                                                   },
                                       "event":  [
                                                     {
@@ -295,7 +295,47 @@
                                                         "script":  {
                                                                        "exec":  [
                                                                                     "const jsonData = pm.response.json();",
-                                                                                    "if (jsonData.id) pm.environment.set(\u0027tenantId\u0027, jsonData.id);"
+                                                                                    "if (jsonData.id || jsonData.tenant?.id) {",
+                                                                                    "    pm.environment.set(\u0027tenantId\u0027, jsonData.id || jsonData.tenant.id);",
+                                                                                    "}"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ]
+                                  },
+                                  {
+                                      "name":  "POST /tenants (with Admin)",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     },
+                                                                     {
+                                                                         "key":  "Authorization",
+                                                                         "value":  "Bearer {{superAdminAccessToken}}"
+                                                                     }
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/tenants",
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"name\": \"New Tenant With Admin\",\n  \"adminEmail\": \"admin@newtenant.com\",\n  \"adminFirstName\": \"John\",\n  \"adminLastName\": \"Doe\"\n}"
+                                                               },
+                                                      "description":  "Create tenant with admin user. Auto-creates TENANT_ADMIN user and returns invite token.\n\nRequest: POST /tenants (with Admin)\nMethod: POST\nEndpoint: {{baseUrl}}/tenants\n\nResponse includes:\n- tenant: created tenant object\n- admin.email: admin email\n- admin.inviteToken: JWT token for registration\n- admin.inviteLink: full registration URL"
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "exec":  [
+                                                                                    "const jsonData = pm.response.json();",
+                                                                                    "if (jsonData.tenant?.id) {",
+                                                                                    "    pm.environment.set(\u0027tenantId\u0027, jsonData.tenant.id);",
+                                                                                    "}",
+                                                                                    "if (jsonData.admin?.inviteToken) {",
+                                                                                    "    pm.environment.set(\u0027inviteToken\u0027, jsonData.admin.inviteToken);",
+                                                                                    "}"
                                                                                 ]
                                                                    }
                                                     }
@@ -1243,7 +1283,21 @@
                                                                      }
                                                                  ],
                                                       "url":  "{{baseUrl}}/reorder-points",
-                                                      "description":  "Request: GET /reorder-points\nMethod: GET\nEndpoint: {{baseUrl}}/reorder-points\nPurpose: Execute GET {{baseUrl}}/reorder-points and return API response."
+                                                      "description":  "List all reorder points.\n\nResponse includes product and location relations."
+                                                  }
+                                  },
+                                  {
+                                      "name":  "GET /reorder-points?lowStock=true",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Authorization",
+                                                                         "value":  "Bearer {{accessToken}}"
+                                                                     }
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/reorder-points?lowStock=true",
+                                                      "description":  "Get products needing reorder (current stock <= minQuantity).\n\nQuery param: lowStock=true\n\nResponse includes:\n- currentStock, reservedStock\n- product details\n- reorder point limits"
                                                   }
                                   },
                                   {

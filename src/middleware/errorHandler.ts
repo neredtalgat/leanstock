@@ -1,6 +1,6 @@
 import { Response, NextFunction, Request } from 'express';
 import { logger } from '../config/logger';
-import { AuthenticatedRequest, ErrorResponse } from '../types';
+import { ErrorResponse } from '../types';
 
 export class AppError extends Error {
   constructor(
@@ -18,6 +18,7 @@ export const errorHandler = (
   error: Error | AppError,
   req: Request,
   res: Response,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   _next: NextFunction,
 ): void => {
   const timestamp = new Date().toISOString();

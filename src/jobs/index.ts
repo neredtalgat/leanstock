@@ -1,6 +1,6 @@
 import { scheduleReorderCheck, triggerManualReorderCheck, closeReorderWorker } from './reorderCheck';
 import { scheduleDeadStockJob, closeDeadStockWorker } from './deadStock.job';
-import { emailWorker, closeEmailWorker } from './email.job';
+import { closeEmailWorker } from './email.job';
 
 /**
  * Initialize all background jobs and scheduled tasks

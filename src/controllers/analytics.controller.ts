@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import { analyticsService } from '../services/analytics.service';
 import { logger } from '../config/logger';
 import { AuthenticatedRequest } from '../types';

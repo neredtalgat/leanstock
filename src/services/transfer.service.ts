@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Prisma } from '@prisma/client';
+// import { Prisma } from '@prisma/client'; // Type-only import if needed
 import { tenantDb, asyncLocalStorage } from '../config/database';
 import { logger } from '../config/logger';
 import { env } from '../config/env';

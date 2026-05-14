@@ -35,7 +35,7 @@ model Tenant {
 
 model User {
   id                       String     @id @default(cuid())
-  tenantId                 String
+  tenantId                 String?
   email                    String
   passwordHash             String
   firstName                String?
@@ -52,7 +52,7 @@ model User {
   updatedAt                DateTime   @updatedAt
   apiKeys                  ApiKey[]
   auditLogs                AuditLog[]
-  tenant                   Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant                   Tenant?    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@unique([tenantId, email])
   @@index([tenantId])
@@ -90,6 +90,7 @@ model Location {
   supplierReturns    SupplierReturn[]
   transferOrdersFrom TransferOrder[]  @relation("transferFrom")
   transferOrdersTo   TransferOrder[]  @relation("transferTo")
+  reorderPoints      ReorderPoint[]
 
   @@unique([tenantId, name])
   @@index([tenantId])
@@ -129,6 +130,7 @@ model Product {
   tenant              Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   supplierProducts    SupplierProduct[]
   supplierReturnItems SupplierReturnItem[]
+  reorderPoints       ReorderPoint[]
 
   @@unique([tenantId, sku])
   @@index([tenantId])
@@ -371,6 +373,8 @@ model ReorderPoint {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  location    Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
 
   @@unique([productId, locationId])
   @@index([tenantId])

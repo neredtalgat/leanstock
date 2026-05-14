@@ -1,110 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
-import helmet from 'helmet';
-import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import { randomUUID } from 'crypto';
 import { logger } from '../config/logger';
 import { JWTPayload } from '../types';
-
-// Enhanced security headers configuration
-const securityHeaders = helmet({
-  // Content Security Policy
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-      scriptSrc: ["'self'"],
-      imgSrc: ["'self'", "data:", "https:"],
-      connectSrc: ["'self'", process.env.CORS_ORIGIN || "http://localhost:3000"],
-      fontSrc: ["'self'", "https://fonts.gstatic.com"],
-      objectSrc: ["'none'"],
-      mediaSrc: ["'self'"],
-      frameSrc: ["'none'"],
-    },
-  },
-  
-  // Hide Express information
-  hidePoweredBy: true,
-  
-  // No referrer policy
-  referrerPolicy: { policy: 'no-referrer' },
-  
-  // HSTS (only in production with HTTPS)
-  hsts: process.env.NODE_ENV === 'production' ? {
-    maxAge: 31536000,
-    includeSubDomains: true,
-    preload: true
-  } : false,
-  
-  // X-Frame-Options
-  frameguard: { action: 'deny' },
-  
-  // X-Content-Type-Options
-  noSniff: true,
-  
-  // X-XSS-Protection
-  xssFilter: true,
-});
-
-// Enhanced CORS configuration
-const corsOptions = {
-  origin: (origin: string | undefined, callback: (err: Error | null, allow: boolean) => void) => {
-    const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:3000').split(',');
-    
-    // Allow requests with no origin (mobile apps, curl, etc.)
-    if (!origin) return callback(null, true);
-    
-    if (process.env.NODE_ENV === 'production') {
-      // Strict origin checking in production
-      if (allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error('Not allowed by CORS'), false);
-      }
-    } else {
-      // More permissive in development
-      callback(null, true);
-    }
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: [
-    'Origin',
-    'X-Requested-With',
-    'Content-Type',
-    'Accept',
-    'Authorization',
-    'X-Tenant-ID',
-    'X-Request-ID'
-  ],
-  exposedHeaders: [
-    'X-Total-Count',
-    'X-Request-ID',
-    'X-Rate-Limit-Limit',
-    'X-Rate-Limit-Remaining',
-    'X-Rate-Limit-Reset'
-  ],
-  maxAge: 86400, // 24 hours
-};
-
-// Rate limiting configuration
-const rateLimiter = rateLimit({
-  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000'), // 15 minutes
-  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100'), // 100 requests per window
-  message: 'Too many requests from this IP, please try again later.',
-  standardHeaders: true, // Return rate limit info in headers
-  legacyHeaders: false,
-  keyGenerator: (req: Request) => {
-    // Use IP + user ID for more granular rate limiting
-    return ipKeyGenerator(req.ip || 'unknown') + ':' + (req.user?.userId || 'anonymous');
-  },
-  skip: (req: Request) => {
-    // Skip rate limiting for health checks
-    return req.path === '/health' || req.path === '/api-docs';
-  },
-  validate: {
-    keyGeneratorIpFallback: false, // disable overzealous regex check on keyGenerator source
-  },
-});
 
 // Request ID middleware
 export const requestIdMiddleware = (req: Request, res: Response, next: NextFunction) => {
@@ -245,6 +142,7 @@ export const contentValidationMiddleware = (req: Request, res: Response, next: N
 
 // Extend Express Request interface
 declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace Express {
     interface Request {
       requestId?: string;

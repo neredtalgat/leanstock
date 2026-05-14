@@ -22,6 +22,7 @@ interface SystemMetrics {
   activeTenants: number;
   totalUsers: number;
   totalProducts: number;
+  totalInventory: number;
   totalInventoryValue: number;
   totalPurchaseOrders: number;
   totalTransfers: number;
@@ -196,6 +197,7 @@ class AnalyticsService {
       activeTenants,
       totalUsers,
       totalProducts,
+      totalInventory,
       totalInventoryValue,
       totalPurchaseOrders,
       totalTransfers,

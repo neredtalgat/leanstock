@@ -64,7 +64,8 @@ const TENANT_MODELS = [
   'systemSetting',
 ];
 
-function withTenant(model: string) {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function withTenant(_model: string) {
   return {
     async create({ args, query }: { args: any; query: any }) {
       const store = asyncLocalStorage.getStore();

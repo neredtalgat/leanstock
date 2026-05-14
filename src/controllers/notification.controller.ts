@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import { notificationService } from '../services/notification.service';
 import { logger } from '../config/logger';
 import { AuthenticatedRequest } from '../types';

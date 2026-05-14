@@ -23,7 +23,7 @@ import notificationRoutes from './routes/notification.routes';
 import tenantRoutes from './routes/tenant.routes';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 import { logger } from './config/logger';
-import { db } from './config/database';
+// import { db } from './config/database'; // Not used directly, tenantDb used via database.ts
 import { AuthenticatedRequest } from './types';
 
 export function createApp(): Application {

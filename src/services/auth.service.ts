@@ -408,30 +408,49 @@ export class AuthService {
       throw new Error('TENANT_NOT_FOUND');
     }
 
+    // Check if user already exists (pre-created by tenant creation)
     const existing = await tenantDb.user.findFirst({
       where: { email, tenantId },
-      select: { id: true },
     });
-    if (existing) {
-      throw new Error('EMAIL_EXISTS');
-    }
 
     const passwordHash = await bcrypt.hash(password, env.BCRYPT_ROUNDS as number);
 
-    const user = await asyncLocalStorage.run({ tenantId }, async () => {
-      return tenantDb.user.create({
-        data: {
-          email,
-          passwordHash,
-          firstName: firstName || null,
-          lastName: lastName || null,
-          role,
-          tenantId,
-          emailVerified: true,
-          isActive: true,
-        },
+    let user;
+    if (existing) {
+      // If user exists but has no password (pre-created admin), update it
+      if (!existing.passwordHash) {
+        user = await asyncLocalStorage.run({ tenantId }, async () => {
+          return tenantDb.user.update({
+            where: { id: existing.id },
+            data: {
+              passwordHash,
+              firstName: firstName || existing.firstName,
+              lastName: lastName || existing.lastName,
+              emailVerified: true,
+            },
+          });
+        });
+      } else {
+        // User already registered with password
+        throw new Error('EMAIL_EXISTS');
+      }
+    } else {
+      // Create new user (for regular invite flow)
+      user = await asyncLocalStorage.run({ tenantId }, async () => {
+        return tenantDb.user.create({
+          data: {
+            email,
+            passwordHash,
+            firstName: firstName || null,
+            lastName: lastName || null,
+            role,
+            tenantId,
+            emailVerified: true,
+            isActive: true,
+          },
+        });
       });
-    });
+    }
 
     const tokens = this.generateTokenPair(user, tenantId);
 
@@ -439,10 +458,10 @@ export class AuthService {
     return { user, tokens };
   }
 
-  private generateTokenPair(user: any, tenantId: string): TokenPair {
+  private generateTokenPair(user: any, tenantId: string | null): TokenPair {
     const payload: Omit<JWTPayload, 'iat' | 'exp'> = {
       userId: user.id,
-      tenantId,
+      tenantId: tenantId || undefined,
       email: user.email,
       role: user.role,
       type: 'access',

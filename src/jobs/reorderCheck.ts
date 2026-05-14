@@ -1,5 +1,5 @@
 import { Queue, Worker, Job } from 'bullmq';
-import { Inventory, Prisma, Product, ReorderPoint } from '@prisma/client';
+import { ReorderPoint } from '@prisma/client';
 import { redis } from '../config/redis';
 import { logger } from '../config/logger';
 import { db } from '../config/database';

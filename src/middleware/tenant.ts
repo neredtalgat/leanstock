@@ -11,7 +11,16 @@ export const injectTenant = (req: AuthenticatedRequest, res: Response, next: Nex
   try {
     const store: Record<string, unknown> = {};
 
-    // Get tenant from JWT or header
+    // Super admin bypass - they operate globally without tenant context
+    if (req.user?.role === UserRole.SUPER_ADMIN) {
+      store.isSuperAdmin = true;
+      asyncLocalStorage.run(store as { tenantId?: string; isSuperAdmin?: boolean }, () => {
+        next();
+      });
+      return;
+    }
+
+    // Get tenant from JWT or header (for regular users)
     let tenantId = req.user?.tenantId;
 
     if (!tenantId) {
@@ -44,11 +53,6 @@ export const injectTenant = (req: AuthenticatedRequest, res: Response, next: Nex
     }
 
     store.tenantId = tenantId;
-
-    // Check if user is super admin
-    if (req.user?.role === UserRole.SUPER_ADMIN) {
-      store.isSuperAdmin = true;
-    }
 
     asyncLocalStorage.run(store as { tenantId: string; isSuperAdmin?: boolean }, () => {
       req.tenantId = tenantId;

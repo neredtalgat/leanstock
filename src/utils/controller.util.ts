@@ -107,7 +107,8 @@ export const handleNotFound = (
 export const validateRequiredParams = (
   params: any,
   required: string[],
-  requestId?: string
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _requestId?: string
 ): { isValid: boolean; missingParams: string[] } => {
   const missing = required.filter(param => !params[param]);
   return {

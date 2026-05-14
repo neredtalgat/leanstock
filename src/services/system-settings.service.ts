@@ -13,13 +13,7 @@ interface GlobalLimits {
   maxStoragePerTenant: number;
 }
 
-interface SystemSetting {
-  id: string;
-  key: string;
-  value: string;
-  description: string;
-  updatedAt: Date;
-}
+// SystemSetting interface defined in Prisma schema
 
 const DEFAULT_LIMITS: GlobalLimits = {
   maxTenants: 1000,
@@ -147,7 +141,8 @@ class SystemSettingsService {
     };
   }
 
-  async validateApiRequest(tenantId: string): Promise<{
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  async validateApiRequest(_tenantId: string): Promise<{
     allowed: boolean;
     remainingRequests: number;
     resetTime: Date;

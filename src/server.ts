@@ -3,7 +3,7 @@ import { env } from './config/env';
 import { logger } from './config/logger';
 import { loadScripts, redis } from './config/redis';
 import { db } from './config/database';
-import { initializeJobs, stopJobs } from './jobs';
+import { stopJobs } from './jobs';
 import { setShuttingDown, isGracefulShuttingDown } from './middleware/graceful-shutdown.middleware';
 
 async function startServer(): Promise<void> {
