@@ -3,7 +3,7 @@ import { env } from './config/env';
 import { logger } from './config/logger';
 import { loadScripts, redis } from './config/redis';
 import { db } from './config/database';
-import { stopJobs } from './jobs';
+import { initializeJobs, stopJobs } from './jobs';
 import { setShuttingDown, isGracefulShuttingDown } from './middleware/graceful-shutdown.middleware';
 
 async function startServer(): Promise<void> {
@@ -12,6 +12,9 @@ async function startServer(): Promise<void> {
     await loadScripts();
 
     const app = createApp();
+
+    // Initialize background jobs (email worker, scheduled tasks)
+    initializeJobs();
 
     const server = app.listen(env.PORT, () => {
       logger.info({

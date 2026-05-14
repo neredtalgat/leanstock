@@ -377,7 +377,31 @@ export class AuthService {
 
     const token = jwt.sign(payload, env.JWT_SECRET, { expiresIn: '7d' });
 
-    logger.info({ email, tenantId, invitedBy: invitedBy.userId }, 'Invitation created');
+    // Get inviter name for email
+    const inviter = await tenantDb.user.findFirst({
+      where: { id: invitedBy.userId, tenantId },
+      select: { firstName: true, lastName: true, email: true },
+    });
+    const inviterName = inviter?.firstName 
+      ? `${inviter.firstName} ${inviter.lastName || ''}`.trim()
+      : inviter?.email || 'Admin';
+
+    // Generate invite link
+    const inviteLink = `${env.FRONTEND_URL || 'http://localhost:3000'}/accept-invitation?token=${token}`;
+
+    // Send invitation email (async, non-blocking)
+    emailService.sendInvitationEmail({
+      to: email,
+      firstName: email.split('@')[0], // Use email prefix as name if no name provided
+      tenantName: tenant.name,
+      invitedByName: inviterName,
+      inviteLink,
+      role: role.replace(/_/g, ' ').toLowerCase(),
+    }).catch(err => {
+      logger.error({ err, email, tenantId }, 'Failed to send invitation email');
+    });
+
+    logger.info({ email, tenantId, invitedBy: invitedBy.userId }, 'Invitation created and email queued');
     return token;
   }
 

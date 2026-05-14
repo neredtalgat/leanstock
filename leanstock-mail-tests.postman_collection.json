@@ -1,0 +1,174 @@
+{
+  "info": {
+    "name": "LeanStock Mail Tests",
+    "description": "Тестирование отправки email (invite, verification, queue status)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Login (получить токен)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"admin@example.com\",\n  \"password\": \"your-password\",\n  \"tenantId\": \"your-tenant-id\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/auth/login",
+          "host": ["{{baseUrl}}"],
+          "path": ["auth", "login"]
+        },
+        "description": "Авторизация для получения JWT токена"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "var jsonData = pm.response.json();",
+              "if (jsonData.data && jsonData.data.accessToken) {",
+              "    pm.environment.set(\"accessToken\", jsonData.data.accessToken);",
+              "    console.log('Token saved to environment');",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Send Invitation (письмо на почту)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"asanalitalgat.16@gmail.com\",\n  \"role\": \"STORE_ASSOCIATE\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/auth/invite",
+          "host": ["{{baseUrl}}"],
+          "path": ["auth", "invite"]
+        },
+        "description": "Отправляет инвайт и email на указанную почту. Письмо придет в течение 5 секунд."
+      }
+    },
+    {
+      "name": "3. Check Mail Queue Status",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/system/mail-queue/status",
+          "host": ["{{baseUrl}}"],
+          "path": ["system", "mail-queue", "status"]
+        },
+        "description": "Проверка статуса очереди email. completed должен увеличиться на 1."
+      }
+    },
+    {
+      "name": "4. Get Failed Jobs (если есть ошибки)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/system/mail-queue/failed",
+          "host": ["{{baseUrl}}"],
+          "path": ["system", "mail-queue", "failed"]
+        },
+        "description": "Список failed jobs если письма не отправились"
+      }
+    },
+    {
+      "name": "5. Resend Verification Email",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"asanalitalgat.16@gmail.com\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/auth/resend-verification",
+          "host": ["{{baseUrl}}"],
+          "path": ["auth", "resend-verification"]
+        },
+        "description": "Повторная отправка verification email"
+      }
+    },
+    {
+      "name": "6. Test SMTP (прямая отправка)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"to\": \"asanalitalgat.16@gmail.com\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/system/test-smtp",
+          "host": ["{{baseUrl}}"],
+          "path": ["system", "test-smtp"]
+        },
+        "description": "Тест SMTP без очереди - письмо должно прийти сразу"
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string",
+      "description": "Измени порт если нужно (3000, 8080 и т.д.)"
+    },
+    {
+      "key": "accessToken",
+      "value": "",
+      "type": "string",
+      "description": "Токен автоматически сохраняется после login"
+    }
+  ]
+}

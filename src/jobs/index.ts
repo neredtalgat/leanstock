@@ -1,6 +1,27 @@
 import { scheduleReorderCheck, triggerManualReorderCheck, closeReorderWorker } from './reorderCheck';
 import { scheduleDeadStockJob, closeDeadStockWorker } from './deadStock.job';
-import { closeEmailWorker } from './email.job';
+import { 
+  mailWorker, 
+  addMailJob, 
+  getMailQueueMetrics,
+  getFailedJobs,
+  retryFailedJob,
+  cleanOldJobs,
+  closeMailWorker,
+} from '../workers/mail.worker';
+import { mailQueue } from '../queues/mail.queue';
+import { logger } from '../config/logger';
+
+// Re-export types from queue
+export type {
+  EmailJobData,
+  SendEmailJob,
+  SendVerificationJob,
+  SendPasswordResetJob,
+  SendBusinessEventJob,
+  SendBulkEmailJob,
+  SendInvitationJob,
+} from '../queues/mail.queue';
 
 /**
  * Initialize all background jobs and scheduled tasks
@@ -10,7 +31,11 @@ export function initializeJobs() {
   scheduleReorderCheck();
   scheduleDeadStockJob();
   
-  logger.info('All background jobs initialized');
+  // Mail worker is automatically started when imported
+  // (Worker instance is created in mail.worker.ts)
+  logger.info('✅ Mail worker initialized');
+  
+  logger.info('✅ All background jobs initialized');
 }
 
 /**
@@ -20,12 +45,42 @@ export async function stopJobs(): Promise<void> {
   await Promise.all([
     closeReorderWorker(),
     closeDeadStockWorker(),
-    closeEmailWorker(),
+    closeMailWorker(),
   ]);
   logger.info('All background jobs stopped');
 }
 
-export { triggerManualReorderCheck, scheduleReorderCheck, scheduleDeadStockJob };
-export * from './reorderCheck';
-export * from './email.job';
-import { logger } from '../config/logger';
+/**
+ * Queue health check
+ */
+export async function getJobsHealth(): Promise<{
+  mail: {
+    waiting: number;
+    active: number;
+    completed: number;
+    failed: number;
+    delayed: number;
+    paused: boolean;
+  };
+}> {
+  const mailMetrics = await getMailQueueMetrics();
+  
+  return {
+    mail: mailMetrics,
+  };
+}
+
+// Re-exports for convenience
+export { 
+  triggerManualReorderCheck, 
+  scheduleReorderCheck, 
+  scheduleDeadStockJob,
+  addMailJob,
+  getMailQueueMetrics,
+  getFailedJobs,
+  retryFailedJob,
+  cleanOldJobs,
+};
+
+// Export mail worker instance for advanced use
+export { mailWorker, mailQueue };
