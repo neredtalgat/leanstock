@@ -1,5 +1,6 @@
 import { scheduleReorderCheck, triggerManualReorderCheck, closeReorderWorker } from './reorderCheck';
 import { scheduleDeadStockJob, closeDeadStockWorker } from './deadStock.job';
+import { closeReservationWorker } from '../workers/reservation.worker';
 import { 
   mailWorker, 
   addMailJob, 
@@ -46,6 +47,7 @@ export async function stopJobs(): Promise<void> {
     closeReorderWorker(),
     closeDeadStockWorker(),
     closeMailWorker(),
+    closeReservationWorker(),
   ]);
   logger.info('All background jobs stopped');
 }

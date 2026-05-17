@@ -30,6 +30,7 @@ services:
       DATABASE_URL: postgresql://leanstock:${DB_PASSWORD:-password}@postgres:5432/leanstock
       REDIS_URL: redis://redis:6379
       JWT_SECRET: ${JWT_SECRET:-change-this-to-a-secure-secret-key-min-32-chars}
+      JWT_REFRESH_SECRET_KEY: ${JWT_REFRESH_SECRET_KEY:-change-this-to-a-secure-refresh-secret-key-min-32-chars}
       JWT_EXPIRES_IN: 15m
       JWT_REFRESH_EXPIRES_IN: 7d
       BCRYPT_ROUNDS: 12
@@ -40,9 +41,20 @@ services:
       SMTP_USER: ${SMTP_USER}
       SMTP_PASS: ${SMTP_PASS}
       EMAIL_FROM: ${EMAIL_FROM}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3001}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3001}
     depends_on:
       - postgres
       - redis
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    container_name: leanstock-frontend
+    ports:
+      - "3001:80"
+    depends_on:
+      - app
     restart: unless-stopped
 
 volumes:

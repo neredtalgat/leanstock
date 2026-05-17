@@ -91,15 +91,16 @@ export class AuthService {
     }
   }
 
-  async login(data: LoginInput): Promise<TokenPair> {
+  async login(data: LoginInput): Promise<TokenPair & { user: any }> {
     try {
-      // Find user by email and tenant
+      let tenantId = data.tenantId;
+      
+      // Find user by email and tenant (or just email if tenantId not provided)
       console.log('Login attempt:', { email: data.email, tenantId: data.tenantId });
       const user = await db.user.findFirst({
-        where: {
-          tenantId: data.tenantId,
-          email: data.email,
-        },
+        where: tenantId
+          ? { tenantId, email: data.email }
+          : { email: data.email },
       });
       console.log('User found:', user ? { id: user.id, email: user.email, isActive: user.isActive } : null);
 
@@ -109,6 +110,27 @@ export class AuthService {
 
       // Check if email is verified
       if (!user.emailVerified) {
+        // Auto-send verification email on login attempt
+        const verificationToken = crypto.randomBytes(32).toString('hex');
+        const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+        
+        await db.user.update({
+          where: { id: user.id },
+          data: {
+            emailVerificationToken: verificationToken,
+            emailVerificationExpires: verificationExpires,
+          },
+        });
+        
+        emailService.sendVerificationEmail(
+          user.email,
+          user.firstName || 'User',
+          verificationToken
+        ).catch(err => {
+          logger.error({ err, userId: user.id }, 'Failed to send verification email on login');
+        });
+        
+        logger.info({ userId: user.id, email: user.email }, 'Verification email auto-sent on login attempt');
         throw new Error('EMAIL_NOT_VERIFIED');
       }
 
@@ -126,7 +148,8 @@ export class AuthService {
       });
 
       // Generate token pair
-      return this.generateTokenPair(user, data.tenantId);
+      const tokens = this.generateTokenPair(user, user.tenantId);
+      return { user, ...tokens };
     } catch (error: any) {
       logger.error({ err: error }, 'Login error');
       // Propagate known auth errors, but let operational errors bubble up

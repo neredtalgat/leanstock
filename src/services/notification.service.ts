@@ -465,6 +465,22 @@ class NotificationService {
     });
   }
 
+  async notifyTransferReceipt(tenantId: string, transferId: string, toLocationId: string, status: string): Promise<any> {
+    const message = `Transfer ${transferId} has been ${status.toLowerCase()} at location ${toLocationId}`;
+    const notification = await this.create(tenantId, { type: 'TRANSFER_RECEIPT', message, metadata: { transferId, toLocationId, status } });
+
+    const managers = await this.getManagersForEmail(tenantId);
+    for (const manager of managers) {
+      emailService.sendBusinessEvent({
+        to: manager.email, firstName: manager.firstName || 'Manager',
+        eventType: 'success', title: '✅ Transfer Received',
+        message: `Transfer ${transferId} has been received and processed.`,
+        details: { 'Transfer ID': transferId, 'Status': status, 'Location': toLocationId },
+      }).catch(err => logger.error({ err }, 'Failed to send transfer receipt email'));
+    }
+    return notification;
+  }
+
   async cleanupOldNotifications(days: number = 30): Promise<number> {
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - days);

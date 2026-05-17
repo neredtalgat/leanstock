@@ -37,7 +37,7 @@ services:
     environment:
       NODE_ENV: development  # <-- DEV режим
       PORT: 3000
-      DATABASE_URL: postgresql://leanstock:password@postgres:5433/leanstock
+      DATABASE_URL: postgresql://leanstock:password@postgres:5432/leanstock
       REDIS_URL: redis://redis:6379
       JWT_SECRET: dev-secret-key
       JWT_EXPIRES_IN: 15m

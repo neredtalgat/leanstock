@@ -61,13 +61,14 @@ export const login = async (req: AuthenticatedRequest, res: Response): Promise<v
   try {
     const data = req.body as LoginInput;
 
-    const tokenPair = await authService.login(data);
+    const result = await authService.login(data);
 
     res.status(200).json({
-      accessToken: tokenPair.accessToken,
-      refreshToken: tokenPair.refreshToken,
-      expiresIn: tokenPair.expiresIn,
+      accessToken: result.accessToken,
+      refreshToken: result.refreshToken,
+      expiresIn: result.expiresIn,
       tokenType: 'Bearer',
+      user: result.user,
     });
   } catch (error: any) {
     logger.error({ err: error }, 'Login error');
@@ -84,7 +85,8 @@ export const login = async (req: AuthenticatedRequest, res: Response): Promise<v
     if (error.message === 'EMAIL_NOT_VERIFIED') {
       res.status(403).json({
         code: 'EMAIL_NOT_VERIFIED',
-        message: 'Please verify your email before logging in',
+        message: 'Please verify your email before logging in. A new verification link has been sent to your email.',
+        emailSent: true,
         timestamp: new Date().toISOString(),
       });
       return;

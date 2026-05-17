@@ -4,6 +4,7 @@ import { validate, validateParams } from '../middleware/validate';
 import { authenticate } from '../middleware/auth';
 import { injectTenant } from '../middleware/tenant';
 import { requirePermission } from '../middleware/rbac';
+import { idempotencyMiddleware } from '../middleware/idempotency.middleware';
 import {
   CreateTransferInput,
   ApproveTransferInput,
@@ -45,6 +46,7 @@ router.post(
   authenticate,
   injectTenant,
   requirePermission('orders:create'),
+  idempotencyMiddleware,
   validate(CreateTransferInput),
   transferController.createTransfer,
 );

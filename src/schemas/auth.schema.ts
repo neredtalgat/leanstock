@@ -19,7 +19,7 @@ export const registerSchema = z.object({
 export const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
   password: z.string().min(1, 'Password is required'),
-  tenantId: z.string().uuid('Invalid tenant ID'),
+  tenantId: z.string().uuid('Invalid tenant ID').optional(),
 });
 
 export const refreshSchema = z.object({

@@ -7,6 +7,7 @@ import swaggerUi from 'swagger-ui-express';
 import YAML from 'yamljs';
 import { randomUUID } from 'crypto';
 import authRoutes from './routes/auth.routes';
+import authExtraRoutes from './routes/auth.extra.routes';
 import productRoutes from './routes/product.routes';
 import transferRoutes from './routes/transfer.routes';
 import inventoryRoutes from './routes/inventory.routes';
@@ -21,6 +22,8 @@ import systemSettingsRoutes from './routes/system-settings.routes';
 import supplierReturnRoutes from './routes/supplier-return.routes';
 import notificationRoutes from './routes/notification.routes';
 import tenantRoutes from './routes/tenant.routes';
+import deadStockRoutes from './routes/dead-stock.routes';
+import { healthCheck, readinessCheck } from './controllers/health.controller';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 import { logger } from './config/logger';
 // import { db } from './config/database'; // Not used directly, tenantDb used via database.ts
@@ -145,13 +148,9 @@ export function createApp(): Application {
     next();
   });
 
-  // Health check endpoint
-  app.get('/health', (_req, res) => {
-    res.status(200).json({
-      status: 'OK',
-      timestamp: new Date().toISOString(),
-    });
-  });
+  // Health check endpoints
+  app.get('/health', healthCheck);
+  app.get('/ready', readinessCheck);
 
   // API documentation (Swagger UI)
   if (process.env.NODE_ENV === 'development') {
@@ -182,6 +181,8 @@ export function createApp(): Application {
   app.use('/supplier-returns', supplierReturnRoutes);
   app.use('/notifications', notificationRoutes);
   app.use('/tenants', tenantRoutes);
+  app.use('/system/dead-stock-rules', deadStockRoutes);
+  app.use('/auth', authExtraRoutes);
 
   // 404 handler
   app.use(notFoundHandler);

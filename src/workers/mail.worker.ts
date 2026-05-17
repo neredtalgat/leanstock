@@ -265,7 +265,7 @@ async function processEmailJob(job: Job<EmailJobData>): Promise<JobResult> {
       }
 
       case 'SEND_VERIFICATION': {
-        const verificationLink = `${env.FRONTEND_URL || 'http://localhost:3000'}/verify-email?token=${data.token}`;
+        const verificationLink = `${env.FRONTEND_URL || 'http://localhost:3001'}/api/auth/verify-email?token=${data.token}`;
         await emailService.send({
           to: data.to,
           subject: 'Verify your email - LeanStock',

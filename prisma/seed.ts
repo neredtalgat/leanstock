@@ -13,12 +13,12 @@ async function main() {
     console.log(`⏩ Tenant '${tenant.name}' already exists, checking users...`);
 
     // Ensure super admin exists (idempotent) - super admin has NO tenant
-    const superAdmin = await prisma.user.findFirst({ where: { email: 'superadmin@leanstock.com' } });
+    const superAdmin = await prisma.user.findFirst({ where: { email: 'asanalitalgat.16@gmail.com' } });
     if (!superAdmin) {
-      const superAdminHash = await bcrypt.hash('SuperAdmin123!', 12);
+      const superAdminHash = await bcrypt.hash('12345678', 12);
       await prisma.user.create({
         data: {
-          email: 'superadmin@leanstock.com',
+          email: 'asanalitalgat.16@gmail.com',
           passwordHash: superAdminHash,
           firstName: 'Super',
           lastName: 'Admin',
@@ -28,7 +28,7 @@ async function main() {
           emailVerified: true,
         },
       });
-      console.log('✅ Created super admin: superadmin@leanstock.com');
+      console.log('✅ Created super admin: asanalitalgat.16@gmail.com');
     } else {
       console.log('⏩ Super admin already exists');
     }
@@ -84,10 +84,10 @@ async function main() {
   console.log(`✅ Created tenant: ${tenant.name}`);
 
   // Create super admin - super admin has NO tenant
-  const superAdminHash = await bcrypt.hash('SuperAdmin123!', 12);
+  const superAdminHash = await bcrypt.hash('12345678', 12);
   await prisma.user.create({
     data: {
-      email: 'superadmin@leanstock.com',
+      email: 'asanalitalgat.16@gmail.com',
       passwordHash: superAdminHash,
       firstName: 'Super',
       lastName: 'Admin',
@@ -97,7 +97,7 @@ async function main() {
       emailVerified: true,
     },
   });
-  console.log('✅ Created super admin: superadmin@leanstock.com');
+  console.log('✅ Created super admin: asanalitalgat.16@gmail.com');
 
   // Create admin user
   const adminPasswordHash = await bcrypt.hash('Admin@123456', 12);

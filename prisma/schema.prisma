@@ -398,14 +398,15 @@ model DemandHistory {
 }
 
 model DeadStockRule {
-  id            String   @id @default(cuid())
-  tenantId      String
-  name          String
-  daysThreshold Int
-  isActive      Boolean  @default(true)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  id              String   @id @default(cuid())
+  tenantId        String
+  name            String
+  daysThreshold   Int
+  discountPercent Float    @default(10)
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([tenantId])
   @@map("dead_stock_rules")
