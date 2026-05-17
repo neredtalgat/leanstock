@@ -328,11 +328,11 @@ export const inviteUser = async (req: AuthenticatedRequest, res: Response): Prom
     const { email, role } = req.body;
     const invitedBy = req.user!;
 
-    const token = await authService.createInvitation(invitedBy, email, role);
+    await authService.createInvitation(invitedBy, email, role);
 
     res.status(201).json({
-      inviteToken: token,
-      inviteLink: `http://localhost:3000/auth/register-invite?token=${token}`,
+      email,
+      role,
       message: 'Invitation created successfully',
     });
   } catch (error: any) {
@@ -351,6 +351,15 @@ export const inviteUser = async (req: AuthenticatedRequest, res: Response): Prom
       res.status(409).json({
         code: 'EMAIL_EXISTS',
         message: 'Email already registered in this tenant',
+        timestamp: new Date().toISOString(),
+      });
+      return;
+    }
+
+    if (error.message === 'INVITE_ROLE_FORBIDDEN') {
+      res.status(403).json({
+        code: 'INVITE_ROLE_FORBIDDEN',
+        message: 'You cannot invite this role',
         timestamp: new Date().toISOString(),
       });
       return;

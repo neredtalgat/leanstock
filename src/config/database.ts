@@ -64,8 +64,43 @@ const TENANT_MODELS = [
   'systemSetting',
 ];
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function withTenant(_model: string) {
+function withTenant(model: string) {
+  const assertTenantScopedWhere = async (where: any, tenantId: string) => {
+    if (!where || typeof where !== 'object') {
+      throw new Error('UNSAFE_TENANT_MUTATION');
+    }
+
+    if (where.tenantId !== undefined) {
+      if (where.tenantId !== tenantId) {
+        throw new Error('TENANT_SCOPE_VIOLATION');
+      }
+      return;
+    }
+
+    const compositeKey = Object.keys(where).find((key) => key.startsWith('tenantId_'));
+    if (compositeKey) {
+      const compositeValue = where[compositeKey];
+      if (!compositeValue || compositeValue.tenantId !== tenantId) {
+        throw new Error('TENANT_SCOPE_VIOLATION');
+      }
+      return;
+    }
+
+    if (typeof where.id === 'string') {
+      const ownedRecord = await (db as any)[model].findFirst({
+        where: { id: where.id, tenantId },
+        select: { id: true },
+      });
+
+      if (!ownedRecord) {
+        throw new Error('TENANT_SCOPE_VIOLATION');
+      }
+      return;
+    }
+
+    throw new Error('UNSAFE_TENANT_MUTATION');
+  };
+
   return {
     async create({ args, query }: { args: any; query: any }) {
       const store = asyncLocalStorage.getStore();
@@ -111,7 +146,7 @@ function withTenant(_model: string) {
     async update({ args, query }: { args: any; query: any }) {
       const store = asyncLocalStorage.getStore();
       if (store?.tenantId && !store?.isSuperAdmin) {
-        args.where = { ...args.where, tenantId: store.tenantId };
+        await assertTenantScopedWhere(args.where, store.tenantId);
       }
       return query(args);
     },
@@ -125,7 +160,7 @@ function withTenant(_model: string) {
     async delete({ args, query }: { args: any; query: any }) {
       const store = asyncLocalStorage.getStore();
       if (store?.tenantId && !store?.isSuperAdmin) {
-        throw new Error('UNSAFE_DELETE_IN_TENANT_CONTEXT');
+        await assertTenantScopedWhere(args.where, store.tenantId);
       }
       return query(args);
     },

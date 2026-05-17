@@ -39,13 +39,38 @@ class LocationService {
   }
 
   async create(tenantId: string, input: CreateLocationInput) {
-    const location = await (tenantDb as any).location.create({
-      data: {
-        tenantId,
-        name: input.name,
-        address: input.address,
-        type: input.type,
-      },
+    const location = await (tenantDb as any).$transaction(async (tx: any) => {
+      const createdLocation = await tx.location.create({
+        data: {
+          tenantId,
+          name: input.name,
+          address: input.address,
+          type: input.type,
+        },
+      });
+
+      // Keep product-location linkage complete by creating zeroed inventory rows
+      // for every existing product in this tenant.
+      const products = await tx.product.findMany({
+        where: { tenantId },
+        select: { id: true },
+      });
+
+      if (products.length > 0) {
+        await tx.inventory.createMany({
+          data: products.map((product: { id: string }) => ({
+            tenantId,
+            productId: product.id,
+            locationId: createdLocation.id,
+            quantity: 0,
+            reservedQuantity: 0,
+            inTransit: 0,
+          })),
+          skipDuplicates: true,
+        });
+      }
+
+      return createdLocation;
     });
 
     logger.info(`Location created: ${location.id} for tenant ${tenantId}`);

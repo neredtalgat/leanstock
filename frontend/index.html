@@ -3,296 +3,701 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>LeanStock Demo</title>
+<title>LeanStock — Inventory Management</title>
 <style>
-:root{--primary:#2563eb;--danger:#dc2626;--success:#16a34a;--bg:#f8fafc;--card:#fff;--text:#1e293b;}
-*{box-sizing:border-box;font-family:system-ui,-apple-system,sans-serif}
-body{margin:0;background:var(--bg);color:var(--text)}
-.container{max-width:1200px;margin:0 auto;padding:20px}
-.card{background:var(--card);border-radius:12px;padding:20px;margin-bottom:20px;box-shadow:0 1px 3px rgba(0,0,0,.1)}
-.btn{border:none;padding:10px 18px;border-radius:8px;cursor:pointer;font-weight:600;font-size:14px}
-.btn-primary{background:var(--primary);color:#fff}
-.btn-danger{background:var(--danger);color:#fff}
-.btn-success{background:var(--success);color:#fff}
-.btn-sm{padding:6px 12px;font-size:12px}
-input,select,textarea{width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:8px;margin-bottom:12px;font-size:14px}
-label{font-weight:600;font-size:13px;color:#64748b;display:block;margin-bottom:4px}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
-.badge{font-size:11px;padding:4px 8px;border-radius:20px;font-weight:700;text-transform:uppercase}
+:root{--sidebar:#0f172a;--sidebar-hover:#1e293b;--accent:#3b82f6;--accent-hover:#2563eb;--bg:#f1f5f9;--card:#fff;--text:#1e293b;--muted:#64748b;--border:#e2e8f0;--danger:#ef4444;--danger-hover:#dc2626;--success:#22c55e;--success-bg:#dcfce7;--success-text:#166534;--warning:#f59e0b;--warning-bg:#fef3c7;--warning-text:#92400e;}
+*{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI',system-ui,-apple-system,sans-serif}
+body{background:var(--bg);color:var(--text);min-height:100vh}
+a{text-decoration:none;color:inherit}
+button{cursor:pointer;border:none;background:none;font-size:14px}
+
+/* Sidebar */
+.sidebar{position:fixed;left:0;top:0;bottom:0;width:240px;background:var(--sidebar);color:#94a3b8;display:flex;flex-direction:column;z-index:100}
+.sidebar-brand{padding:20px 24px;font-size:18px;font-weight:700;color:#fff;border-bottom:1px solid rgba(255,255,255,.08)}
+.sidebar-brand span{color:var(--accent)}
+.sidebar-nav{flex:1;overflow-y:auto;padding:12px 0}
+.sidebar-nav a{display:flex;align-items:center;gap:12px;padding:10px 20px;margin:2px 12px;border-radius:8px;font-size:14px;transition:.15s;cursor:pointer}
+.sidebar-nav a:hover,.sidebar-nav a.active{background:var(--sidebar-hover);color:#fff}
+.sidebar-nav a svg{flex-shrink:0;width:18px;height:18px}
+.sidebar-footer{padding:16px 20px;border-top:1px solid rgba(255,255,255,.08);font-size:13px}
+.sidebar-footer .user-name{color:#fff;font-weight:600}
+.sidebar-footer .user-role{text-transform:capitalize;color:#64748b}
+
+/* Main */
+.main{margin-left:240px;min-height:100vh}
+.topbar{height:64px;background:var(--card);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 28px;position:sticky;top:0;z-index:50}
+.topbar h1{font-size:18px;font-weight:600}
+.topbar-actions{display:flex;gap:10px;align-items:center}
+
+/* Content */
+.content{padding:24px 28px}
+.grid-2{display:grid;grid-template-columns:repeat(2,1fr);gap:20px}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:20px}
+
+/* Cards */
+.card{background:var(--card);border-radius:12px;border:1px solid var(--border);padding:20px}
+.card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.card-title{font-size:16px;font-weight:600}
+.stat-value{font-size:28px;font-weight:700;color:var(--text)}
+.stat-label{font-size:13px;color:var(--muted);margin-top:4px}
+.stat-change{font-size:12px;margin-top:8px;padding:4px 8px;border-radius:20px;display:inline-block}
+.stat-change.up{background:var(--success-bg);color:var(--success-text)}
+.stat-change.down{background:#fee2e2;color:#991b1b}
+
+/* Table */
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{text-align:left;padding:12px 16px;color:var(--muted);font-weight:500;font-size:12px;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border)}
+td{padding:14px 16px;border-bottom:1px solid var(--border);vertical-align:middle}
+tr:hover td{background:#f8fafc}
+.badge{font-size:11px;padding:4px 10px;border-radius:20px;font-weight:600;text-transform:uppercase;letter-spacing:.03em}
 .badge-green{background:#dcfce7;color:#166534}
 .badge-red{background:#fee2e2;color:#991b1b}
 .badge-yellow{background:#fef9c3;color:#854d0e}
 .badge-blue{background:#dbeafe;color:#1e40af}
-table{width:100%;border-collapse:collapse;font-size:14px}
-th,td{text-align:left;padding:10px;border-bottom:1px solid #e2e8f0}
-th{color:#64748b;font-weight:600}
-.nav{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:20px}
-.nav a{color:var(--primary);text-decoration:none;font-weight:600}
-.hidden{display:none !important}
-.toast{position:fixed;top:20px;right:20px;padding:14px 20px;border-radius:10px;color:#fff;font-weight:600;z-index:9999;animation:slideIn .3s ease}
-@keyframes slideIn{from{transform:translateX(100%)}to{transform:translateX(0)}}
-pre{background:#0f172a;color:#e2e8f0;padding:12px;border-radius:8px;overflow:auto;font-size:12px}
+.badge-gray{background:#f1f5f9;color:#475569}
+
+/* Buttons */
+.btn{padding:8px 16px;border-radius:8px;font-weight:500;transition:.15s;display:inline-flex;align-items:center;gap:6px}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-primary:hover{background:var(--accent-hover)}
+.btn-danger{background:var(--danger);color:#fff}
+.btn-danger:hover{background:var(--danger-hover)}
+.btn-outline{border:1px solid var(--border);color:var(--text)}
+.btn-outline:hover{background:#f8fafc}
+.btn-sm{padding:6px 12px;font-size:13px}
+
+/* Forms */
+.form-group{margin-bottom:16px}
+.form-group label{display:block;font-size:13px;font-weight:500;color:var(--muted);margin-bottom:6px}
+input,select,textarea{width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:8px;font-size:14px;transition:.15s;background:var(--card)}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(59,130,246,.15)}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+
+/* Modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;display:flex;align-items:center;justify-content:center}
+.modal{background:var(--card);border-radius:12px;width:100%;max-width:520px;max-height:90vh;overflow:auto;box-shadow:0 25px 50px -12px rgba(0,0,0,.25)}
+.modal-header{padding:20px 24px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.modal-body{padding:24px}
+.modal-footer{padding:16px 24px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:10px}
+
+/* Toast */
+.toast{position:fixed;top:20px;right:20px;padding:14px 20px;border-radius:10px;color:#fff;font-weight:600;z-index:300;animation:slideIn .3s ease;max-width:400px}
+@keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+
+/* Auth */
+.auth-page{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#0f172a 0%,#1e293b 100%)}
+.auth-card{background:var(--card);border-radius:16px;padding:40px;width:100%;max-width:420px;box-shadow:0 25px 50px -12px rgba(0,0,0,.35)}
+.auth-card h2{font-size:24px;margin-bottom:8px}
+.auth-card p{color:var(--muted);margin-bottom:24px;font-size:14px}
+.auth-link{color:var(--accent);font-weight:500;cursor:pointer}
+.auth-link:hover{text-decoration:underline}
+
+/* Empty state */
+.empty{text-align:center;padding:60px 20px;color:var(--muted)}
+.empty h3{font-size:18px;color:var(--text);margin-bottom:8px}
+
+/* Tabs */
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--border);margin-bottom:20px}
+.tab{padding:10px 16px;font-size:14px;font-weight:500;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
+.tab.active{color:var(--accent);border-color:var(--accent)}
+
+/* Responsive */
+@media(max-width:1024px){.grid-4{grid-template-columns:repeat(2,1fr)}.grid-3{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:768px){.sidebar{width:100%;position:relative}.main{margin-left:0}.grid-2,.grid-3,.grid-4{grid-template-columns:1fr}}
+
+.hidden{display:none!important}
 </style>
 </head>
 <body>
-<div class="container">
-  <div id="app"></div>
-</div>
+<div id="app"></div>
 <script>
-// API через nginx reverse proxy (проксирует /api/ на бэкенд)
-const API_BASE = '/api';
-const API = API_BASE;
-
+const DIRECT_API_BASE = 'http://localhost:3000';
+let API = (() => {
+  // Prefer nginx proxy when frontend runs in container on :3001.
+  if (window.location.port === '3001') return '/api';
+  // file:// origin becomes "null" and is blocked by CORS in secure setups.
+  // Keep direct API fallback, but show explicit guidance on connection errors.
+  if (window.location.protocol === 'file:') return DIRECT_API_BASE;
+  return `${window.location.protocol}//${window.location.hostname}:3000`;
+})();
 let token = localStorage.getItem('accessToken') || '';
 let refresh = localStorage.getItem('refreshToken') || '';
 let user = JSON.parse(localStorage.getItem('user') || 'null');
-
-// Check for verify-email redirect messages
-const urlParams = new URLSearchParams(window.location.search);
-const verifyStatus = urlParams.get('verify');
-const verifyMsg = urlParams.get('message');
-if (verifyStatus === 'success') {
-  setTimeout(() => toast(verifyMsg || 'Email verified! You can now log in.', 'success'), 300);
-  window.history.replaceState({}, document.title, window.location.pathname);
-} else if (verifyStatus === 'error') {
-  setTimeout(() => toast(verifyMsg || 'Verification failed.', 'error'), 300);
-  window.history.replaceState({}, document.title, window.location.pathname);
-}
+let currentPage = 'dashboard';
+let authTab = 'login';
 
 function $(id){return document.getElementById(id)}
-function show(id){$(id).classList.remove('hidden')}
-function hide(id){$(id).classList.add('hidden')}
 function toast(msg, type='success'){
   const d=document.createElement('div');
-  d.className='toast'; d.style.background = type==='success'?'#16a34a':type==='error'?'#dc2626':'#2563eb';
+  d.className='toast';
+  d.style.background = type==='success'?'#16a34a':type==='error'?'#dc2626':'#3b82f6';
   d.textContent=msg; document.body.appendChild(d);
-  setTimeout(()=>d.remove(),4000);
+  setTimeout(()=>d.remove(),5000);
 }
 
 async function api(path, opts={}){
-  const url = API + path;
+  const buildUrl = (base) => `${base}${path}`;
   const headers = {'Content-Type':'application/json', ...(opts.headers||{})};
   if(token) headers['Authorization'] = 'Bearer ' + token;
-  const res = await fetch(url, {...opts, headers});
-  if(res.status===401 && refresh){ await doRefresh(); headers['Authorization']='Bearer '+token; const r2=await fetch(url,{...opts,headers}); return r2; }
+
+  let res;
+  try{
+    res = await fetch(buildUrl(API), {...opts, headers});
+  }catch(err){
+    // If /api proxy is unavailable (e.g. running frontend via npx serve), fallback to direct backend URL.
+    if(API === '/api'){
+      API = DIRECT_API_BASE;
+      res = await fetch(buildUrl(API), {...opts, headers});
+    }else{
+      throw err;
+    }
+  }
+
+  if(res.status===404 && API === '/api'){
+    API = DIRECT_API_BASE;
+    res = await fetch(buildUrl(API), {...opts, headers});
+  }
+
+  if(res.status===401 && refresh){
+    const r = await fetch(`${API}/auth/refresh`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({refreshToken:refresh})});
+    if(r.ok){
+      const d=await r.json();
+      token=d.accessToken;
+      localStorage.setItem('accessToken',token);
+      headers['Authorization']='Bearer '+token;
+      const r2=await fetch(buildUrl(API),{...opts,headers});
+      return r2;
+    } else{ logout(); }
+  }
   return res;
 }
 
-async function doRefresh(){
-  const r = await fetch(API+'/auth/refresh',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({refreshToken:refresh})});
-  if(r.ok){ const d=await r.json(); token=d.accessToken; localStorage.setItem('accessToken',token); }
-  else{ logout(); }
-}
+function logout(){ localStorage.clear(); token=''; user=null; currentPage='dashboard'; renderAuth(); toast('Logged out','info'); }
 
-function logout(){ localStorage.clear(); token=''; user=null; renderAuth(); toast('Logged out','info'); }
-
+// ============ AUTH ============
 function renderAuth(){
+  const params = new URLSearchParams(window.location.search);
+  const verifyStatus = params.get('verify');
+  const verifyMsg = params.get('message');
+  const inviteToken = params.get('token');
+  const isInvitePath = window.location.pathname.includes('/accept-invitation');
+  if (inviteToken || isInvitePath) authTab = 'invite';
+  if(verifyStatus) window.history.replaceState({}, document.title, window.location.pathname);
+
   $('app').innerHTML = `
-    <div class="card" style="max-width:420px;margin:60px auto">
-      <h2>LeanStock</h2>
-      <div id="auth-forms">
-        <div id="login-form">
-          <h3>Login</h3>
-          <label>Email</label><input id="li-email" type="email" placeholder="user@example.com">
-          <label>Password</label><input id="li-pass" type="password" placeholder="••••••">
-          <button type="button" class="btn btn-primary" onclick="console.log('Button clicked'); login()">Login</button>
-          <p><a href="#" onclick="showRegister()">Need an account? Register</a> · <a href="#" onclick="showForgot()">Forgot password?</a></p>
+    <div class="auth-page">
+      <div class="auth-card">
+        <h2>LeanStock</h2>
+        <p>Inventory Management System</p>
+        ${verifyStatus==='success'?'<div style="background:#dcfce7;color:#166534;padding:12px 16px;border-radius:8px;margin-bottom:16px;font-size:14px">'+decodeURIComponent(verifyMsg||'Email verified!')+'</div>':''}
+        ${verifyStatus==='error'?'<div style="background:#fee2e2;color:#991b1b;padding:12px 16px;border-radius:8px;margin-bottom:16px;font-size:14px">'+decodeURIComponent(verifyMsg||'Verification failed')+'</div>':''}
+        <div class="tabs" style="margin-bottom:16px">
+          <div class="tab ${authTab==='login'?'active':''}" onclick="switchAuthTab('login')">Sign In</div>
+          <div class="tab ${authTab==='invite'?'active':''}" onclick="switchAuthTab('invite')">Accept Invite</div>
         </div>
-        <div id="register-form" class="hidden">
-          <h3>Register</h3>
-          <label>Email</label><input id="re-email" type="email">
-          <label>Password</label><input id="re-pass" type="password">
-          <label>First Name</label><input id="re-fname">
-          <label>Last Name</label><input id="re-lname">
-          <button class="btn btn-success" onclick="register()">Register</button>
-          <p><a href="#" onclick="showLogin()">Back to login</a></p>
+        <div id="auth-login" class="${authTab==='login'?'':'hidden'}">
+          <div class="form-group"><label>Email</label><input id="li-email" type="email" placeholder="you@company.com"></div>
+          <div class="form-group"><label>Password</label><input id="li-pass" type="password" placeholder="••••••••"></div>
+          <button class="btn btn-primary" style="width:100%;justify-content:center;padding:12px" onclick="login()">Sign In</button>
+          <p style="text-align:center;margin-top:16px;font-size:14px"><span class="auth-link" onclick="showForgot()">Forgot password?</span></p>
         </div>
-        <div id="forgot-form" class="hidden">
-          <h3>Reset Password</h3>
-          <label>Email</label><input id="fp-email" type="email">
-          <button class="btn btn-primary" onclick="forgotPassword()">Send Reset Link</button>
-          <p><a href="#" onclick="showLogin()">Back to login</a></p>
-        </div>
-        <div id="verify-hint" class="hidden">
-          <p style="color:var(--success);font-weight:600">✅ Registration successful! Check your email to verify your account before logging in.</p>
+        <div id="auth-invite" class="${authTab==='invite'?'':'hidden'}">
+          <div class="form-group"><label>Invitation Token</label><input id="inv-token" placeholder="Paste token from email" value="${inviteToken?decodeURIComponent(inviteToken):''}"></div>
+          <div class="form-row">
+            <div class="form-group"><label>First Name</label><input id="inv-fname" placeholder="John"></div>
+            <div class="form-group"><label>Last Name</label><input id="inv-lname" placeholder="Doe"></div>
+          </div>
+          <div class="form-group"><label>Password</label><input id="inv-pass" type="password" placeholder="At least 8 chars, with upper/lower/number"></div>
+          <button class="btn btn-primary" style="width:100%;justify-content:center;padding:12px" onclick="acceptInvitation()">Create Account</button>
+          <p style="margin-top:12px;color:var(--muted);font-size:13px">Token sent to your email by your admin. It expires in 7 days.</p>
         </div>
       </div>
     </div>`;
 }
-function showRegister(){ $('login-form').classList.add('hidden'); $('register-form').classList.remove('hidden'); $('forgot-form').classList.add('hidden'); }
-function showLogin(){ $('login-form').classList.remove('hidden'); $('register-form').classList.add('hidden'); $('forgot-form').classList.add('hidden'); }
-function showForgot(){ $('login-form').classList.add('hidden'); $('register-form').classList.add('hidden'); $('forgot-form').classList.remove('hidden'); }
+
+function switchAuthTab(tab){
+  authTab = tab;
+  renderAuth();
+}
 
 async function login(){
-  console.log('Login button clicked');
-  const res = await api('/auth/login',{method:'POST',body:JSON.stringify({email:$('li-email').value,password:$('li-pass').value})});
-  console.log('Login response:', res.status);
-  const data = await res.json();
-  console.log('Login data:', data);
-  if(!res.ok){
-    let msg = data.message || 'Login failed';
-    if(data.code === 'EMAIL_NOT_VERIFIED' && data.emailSent){
-      msg = 'Please verify your email first. A new verification link has been sent to your inbox (check Spam too).';
+  try{
+    const res = await api('/auth/login',{method:'POST',body:JSON.stringify({email:$('li-email').value,password:$('li-pass').value})});
+    const data = await res.json().catch(()=>({}));
+    if(!res.ok){
+      let msg = data.message || 'Login failed';
+      if(data.code==='EMAIL_NOT_VERIFIED' && data.emailSent){
+        msg = 'Please verify your email first. A new verification link has been sent to your inbox (check Spam too).';
+      }
       toast(msg,'error'); return;
     }
-    if(data.code === 'VALIDATION_ERROR' && data.details){
-      msg = 'Validation error: ' + (data.details.errors?.map(e => e.path + ' - ' + e.message).join(', ') || JSON.stringify(data.details));
-    } else if(data.code){
-      msg = data.code + ': ' + msg;
+    token=data.accessToken; refresh=data.refreshToken; user=data.user;
+    localStorage.setItem('accessToken',token); localStorage.setItem('refreshToken',refresh); localStorage.setItem('user',JSON.stringify(user));
+    toast('Welcome, '+(user.firstName||user.email)); renderApp();
+  }catch(_e){
+    if (window.location.protocol === 'file:') {
+      toast('Frontend is opened via file://. Start UI on http://localhost:3001 and try again.','error');
+      return;
     }
-    toast(msg,'error'); return;
+    toast(`Cannot connect to API (${API}). Check backend on http://localhost:3000`,'error');
   }
-  token=data.accessToken; refresh=data.refreshToken; user=data.user || { email: $('li-email').value };
-  localStorage.setItem('accessToken',token); localStorage.setItem('refreshToken',refresh); localStorage.setItem('user',JSON.stringify(user));
-  toast('Welcome, '+user.firstName); renderDashboard();
-}
-async function register(){
-  const res = await api('/auth/register',{method:'POST',body:JSON.stringify({email:$('re-email').value,password:$('re-pass').value,firstName:$('re-fname').value,lastName:$('re-lname').value})});
-  if(res.ok){ showRegister(); $('verify-hint').classList.remove('hidden'); toast('Check your email!','success'); }
-  else{ const d=await res.json(); toast(d.message||'Registration failed','error'); }
-}
-async function forgotPassword(){
-  const res = await api('/auth/forgot-password',{method:'POST',body:JSON.stringify({email:$('fp-email').value})});
-  if(res.ok){ toast('Reset link sent to email','success'); showLogin(); }
-  else{ toast('Failed to send reset','error'); }
 }
 
-function renderDashboard(){
+async function acceptInvitation(){
+  const payload = {
+    token: $('inv-token').value.trim(),
+    firstName: $('inv-fname').value.trim() || undefined,
+    lastName: $('inv-lname').value.trim() || undefined,
+    password: $('inv-pass').value,
+  };
+
+  if(!payload.token){ toast('Invitation token is required','error'); return; }
+  if(!payload.password){ toast('Password is required','error'); return; }
+
+  const res = await api('/auth/register-invite',{method:'POST',body:JSON.stringify(payload)});
+  const data = await res.json();
+  if(!res.ok){ toast(data.message || 'Failed to accept invitation','error'); return; }
+
+  token = data.accessToken;
+  refresh = data.refreshToken;
+  user = {
+    id: data.id,
+    email: data.email,
+    firstName: data.firstName,
+    lastName: data.lastName,
+    role: data.role,
+  };
+  localStorage.setItem('accessToken', token);
+  localStorage.setItem('refreshToken', refresh);
+  localStorage.setItem('user', JSON.stringify(user));
+
+  if(window.location.pathname.includes('/accept-invitation') || window.location.search.includes('token=')){
+    window.history.replaceState({}, document.title, '/');
+  }
+  toast('Invitation accepted. Welcome to LeanStock!');
+  renderApp();
+}
+
+async function showForgot(){
+  const email = prompt('Enter your email:'); if(!email) return;
+  const res = await api('/auth/forgot-password',{method:'POST',body:JSON.stringify({email})});
+  toast(res.ok?'Reset link sent to your email':'Failed to send reset link', res.ok?'success':'error');
+}
+
+// ============ APP SHELL ============
+function renderApp(){
   if(!user){ renderAuth(); return; }
+  const isSuper = user.role==='SUPER_ADMIN';
+  const isAdmin = user.role==='TENANT_ADMIN' || isSuper;
+  const navItems = [
+    {id:'dashboard',label:'Dashboard',icon:'M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z'},
+    {id:'products',label:'Products',icon:'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4'},
+    {id:'inventory',label:'Inventory',icon:'M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4'},
+    {id:'transfers',label:'Transfers',icon:'M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4'},
+    {id:'purchase-orders',label:'Purchase Orders',icon:'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2'},
+    {id:'suppliers',label:'Suppliers',icon:'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z'},
+    {id:'locations',label:'Locations',icon:'M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0zM15 11a3 3 0 11-6 0 3 3 0 016 0z'},
+    ...(isAdmin?[{id:'users',label:'Team',icon:'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z'}]:[]),
+    {id:'analytics',label:'Analytics',icon:'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z'},
+  ];
+
   $('app').innerHTML = `
-    <div class="nav">
-      <strong>LeanStock</strong>
-      <a href="#" onclick="renderProducts()">Products</a>
-      <a href="#" onclick="renderTransfers()">Transfers</a>
-      <a href="#" onclick="renderInventory()">Inventory</a>
-      <a href="#" onclick="renderPurchaseOrders()">Purchase Orders</a>
-      <a href="#" onclick="renderAnalytics()">Analytics</a>
-      <span style="margin-left:auto">${user.firstName||user.email} (${user.role})</span>
-      <button class="btn btn-sm btn-danger" onclick="logout()">Logout</button>
+    <div class="sidebar">
+      <div class="sidebar-brand">Lean<span>Stock</span></div>
+      <nav class="sidebar-nav">
+        ${navItems.map(item=>`<a class="${currentPage===item.id?'active':''}" onclick="navigate('${item.id}')">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="${item.icon}"/></svg>
+          ${item.label}
+        </a>`).join('')}
+      </nav>
+      <div class="sidebar-footer">
+        <div class="user-name">${user.firstName||user.email}</div>
+        <div class="user-role">${user.role?.replace(/_/g,' ').toLowerCase()}</div>
+        <button class="btn btn-outline" style="margin-top:12px;width:100%;color:#94a3b8;border-color:rgba(255,255,255,.15)" onclick="logout()">Sign Out</button>
+      </div>
     </div>
-    <div id="main"></div>`;
-  renderProducts();
+    <div class="main" id="main"></div>`;
+
+  renderPage(currentPage);
 }
 
-async function renderProducts(){
-  $('main').innerHTML = '<div class="card"><h3>Products</h3><div id="product-list">Loading...</div></div>';
+function navigate(page){ currentPage=page; renderApp(); }
+
+function renderPage(page){
+  const main = $('main');
+  switch(page){
+    case 'dashboard': renderDashboard(main); break;
+    case 'products': renderProducts(main); break;
+    case 'inventory': renderInventory(main); break;
+    case 'transfers': renderTransfers(main); break;
+    case 'purchase-orders': renderPurchaseOrders(main); break;
+    case 'suppliers': renderSuppliers(main); break;
+    case 'locations': renderLocations(main); break;
+    case 'users': renderUsers(main); break;
+    case 'analytics': renderAnalytics(main); break;
+    default: renderDashboard(main);
+  }
+}
+
+// ============ PAGES ============
+async function renderDashboard(el){
+  el.innerHTML = '<div class="content"><div class="grid-4" id="dash-stats">Loading...</div></div>';
+  try{
+    const [prodRes,invRes,transRes,poRes] = await Promise.all([
+      api('/products?limit=1'), api('/inventory?limit=1'), api('/transfers?limit=1'), api('/purchase-orders?limit=1')
+    ]);
+    const prod = prodRes.ok?await prodRes.json():{};
+    const inv = invRes.ok?await invRes.json():{};
+    const trans = transRes.ok?await transRes.json():{};
+    const po = poRes.ok?await poRes.json():{};
+    $('dash-stats').innerHTML = [
+      {label:'Products',value:prod.pagination?.totalCount||0,change:'+12%',up:true},
+      {label:'Inventory Items',value:inv.pagination?.totalCount||0,change:'+5%',up:true},
+      {label:'Transfers',value:trans.pagination?.totalCount||0,change:'-2%',up:false},
+      {label:'Purchase Orders',value:po.pagination?.totalCount||0,change:'+8%',up:true},
+    ].map(s=>`<div class="card"><div class="stat-value">${s.value}</div><div class="stat-label">${s.label}</div><span class="stat-change ${s.up?'up':'down'}">${s.up?'↑':'↓'} ${s.change}</span></div>`).join('');
+  }catch(e){ toast('Failed to load dashboard','error'); }
+}
+
+async function renderProducts(el){
+  el.innerHTML = `<div class="content">
+    <div class="topbar"><h1>Products</h1><div class="topbar-actions">${user.role!=='STORE_ASSOCIATE'?'<button class="btn btn-primary" onclick="openProductModal()">+ New Product</button>':''}</div></div>
+    <div class="card"><table><thead><tr><th>SKU</th><th>Name</th><th>Description</th><th>Cost</th><th>Price</th></tr></thead><tbody id="prod-tbody"><tr><td colspan="5" style="text-align:center;color:var(--muted)">Loading...</td></tr></tbody></table></div>
+  </div>`;
   const res = await api('/products?limit=50');
   const data = await res.json();
-  if(!res.ok){ toast(data.message||'Failed to load','error'); return; }
-  const items = Array.isArray(data)?data:(data.items||data.products||[]);
-  let html = '<div class="grid">';
-  items.forEach(p=>{
-    html += `<div class="card">
-      <div style="display:flex;justify-content:space-between"><strong>${p.name||p.sku}</strong><span class="badge badge-blue">${p.sku}</span></div>
-      <div style="color:#64748b;font-size:13px;margin:8px 0">${p.description||'No description'}</div>
-      <div style="display:flex;gap:8px;align-items:center">
-        <span class="badge badge-green">$${p.retailPrice}</span>
-        <span class="badge badge-yellow">Cost: $${p.baseCost}</span>
-      </div>
-    </div>`;
-  });
-  html += '</div>';
-  if(user.role!=='STORE_ASSOCIATE'){
-    html += `<div class="card" style="margin-top:20px">
-      <h4>Create Product</h4>
-      <label>SKU</label><input id="p-sku">
-      <label>Name</label><input id="p-name">
-      <label>Description</label><input id="p-desc">
-      <label>Base Cost</label><input id="p-cost" type="number" step="0.01">
-      <label>Retail Price</label><input id="p-price" type="number" step="0.01">
-      <button class="btn btn-success" onclick="createProduct()">Create</button>
-    </div>`;
-  }
-  $('main').innerHTML = html;
+  const items = data.data || data.items || [];
+  $('prod-tbody').innerHTML = items.length?items.map(p=>`<tr><td><span class="badge badge-blue">${p.sku}</span></td><td><strong>${p.name}</strong></td><td>${p.description||'—'}</td><td>$${p.baseCost}</td><td>$${p.retailPrice}</td></tr>`).join(''):'<tr><td colspan="5" class="empty">No products found</td></tr>';
 }
+function openProductModal(){
+  const modal = document.createElement('div');
+  modal.className='modal-overlay'; modal.id='product-modal';
+  modal.innerHTML = `<div class="modal">
+    <div class="modal-header"><h3>New Product</h3><button class="btn" onclick="closeModal('product-modal')" style="font-size:20px">&times;</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label>SKU</label><input id="p-sku" placeholder="SKU-001"></div>
+      <div class="form-group"><label>Name</label><input id="p-name" placeholder="Product name"></div>
+      <div class="form-group"><label>Description</label><textarea id="p-desc" placeholder="Optional"></textarea></div>
+      <div class="form-row">
+        <div class="form-group"><label>Base Cost</label><input id="p-cost" type="number" min="0.01" step="0.01" placeholder="10.00"></div>
+        <div class="form-group"><label>Retail Price</label><input id="p-price" type="number" min="0.01" step="0.01" placeholder="15.99"></div>
+      </div>
+      <div class="form-group"><label>Weight (optional)</label><input id="p-weight" type="number" min="0.01" step="0.01" placeholder="1.25"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('product-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="createProduct()">Create Product</button>
+    </div>
+  </div>`;
+  document.body.appendChild(modal);
+}
+
 async function createProduct(){
-  const body={sku:$('p-sku').value,name:$('p-name').value,description:$('p-desc').value,baseCost:parseFloat($('p-cost').value),retailPrice:parseFloat($('p-price').value)};
-  const res=await api('/products',{method:'POST',body:JSON.stringify(body)});
-  if(res.ok){ toast('Product created'); renderProducts(); }
+  const body = {
+    sku: $('p-sku').value.trim(),
+    name: $('p-name').value.trim(),
+    description: $('p-desc').value.trim() || undefined,
+    baseCost: Number($('p-cost').value),
+    retailPrice: Number($('p-price').value),
+    ...( $('p-weight').value ? { weight: Number($('p-weight').value) } : {} ),
+  };
+
+  const res = await api('/products', { method:'POST', body: JSON.stringify(body) });
+  const data = await res.json().catch(()=>({}));
+  if(!res.ok){ toast(data.message || 'Failed to create product', 'error'); return; }
+  toast('Product created');
+  closeModal('product-modal');
+  renderPage('products');
+}
+
+async function renderInventory(el){
+  el.innerHTML = `<div class="content">
+    <div class="topbar"><h1>Inventory</h1></div>
+    <div class="card"><table><thead><tr><th>Product</th><th>Location</th><th>Quantity</th><th>Reserved</th><th>Available</th><th>Status</th></tr></thead><tbody id="inv-tbody"><tr><td colspan="6" style="text-align:center;color:var(--muted)">Loading...</td></tr></tbody></table></div>
+  </div>`;
+  const res = await api('/inventory?limit=50');
+  const data = await res.json();
+  const items = Array.isArray(data) ? data : (data.data || data.items || []);
+  $('inv-tbody').innerHTML = items.length?items.map(i=>{
+    const avail = i.quantity-(i.reservedQuantity||0);
+    const status = i.isLowStock?'<span class="badge badge-red">Low Stock</span>':'<span class="badge badge-green">OK</span>';
+    return `<tr><td>${i.product?.name||i.productId}</td><td>${i.location?.name||i.locationId}</td><td>${i.quantity}</td><td>${i.reservedQuantity||0}</td><td>${avail}</td><td>${status}</td></tr>`;
+  }).join(''):'<tr><td colspan="6" class="empty">No inventory records</td></tr>';
+}
+
+async function renderTransfers(el){
+  const canCreate = user.role!=='STORE_ASSOCIATE' && user.role!=='SUPPLIER';
+  el.innerHTML = `<div class="content">
+    <div class="topbar"><h1>Transfers</h1><div class="topbar-actions">${canCreate?'<button class="btn btn-primary" onclick="openTransferModal()">+ New Transfer</button>':''}</div></div>
+    <div class="card"><table><thead><tr><th>ID</th><th>From → To</th><th>Status</th><th>Value</th><th>Actions</th></tr></thead><tbody id="tx-tbody"><tr><td colspan="5" style="text-align:center;color:var(--muted)">Loading...</td></tr></tbody></table></div>
+  </div>`;
+  const res = await api('/transfers?limit=50');
+  const data = await res.json();
+  const items = Array.isArray(data) ? data : (data.data || data.items || []);
+  $('tx-tbody').innerHTML = items.length?items.map(t=>{
+    const statusBadge = t.status==='COMPLETED'?'<span class="badge badge-green">'+t.status+'</span>':t.status==='CANCELLED'?'<span class="badge badge-red">'+t.status+'</span>':'<span class="badge badge-yellow">'+t.status+'</span>';
+    return `<tr><td>${t.id.slice(0,8)}</td><td>${t.fromLocation?.name||t.fromLocationId} → ${t.toLocation?.name||t.toLocationId}</td><td>${statusBadge}</td><td>$${t.totalValue}</td><td>—</td></tr>`;
+  }).join(''):'<tr><td colspan="5" class="empty">No transfers found</td></tr>';
+}
+async function openTransferModal(){
+  const [locationsRes, productsRes] = await Promise.all([
+    api('/locations?limit=200'),
+    api('/products?limit=200'),
+  ]);
+  const locationsRaw = await locationsRes.json().catch(()=>[]);
+  const productsRaw = await productsRes.json().catch(()=>({}));
+  const locations = Array.isArray(locationsRaw) ? locationsRaw : (locationsRaw.data || locationsRaw.items || []);
+  const products = productsRaw.data || productsRaw.items || [];
+
+  if(!locations.length){ toast('Create locations first','error'); return; }
+  if(!products.length){ toast('Create products first','error'); return; }
+
+  const modal = document.createElement('div');
+  modal.className='modal-overlay'; modal.id='transfer-modal';
+  modal.innerHTML = `<div class="modal">
+    <div class="modal-header"><h3>New Transfer</h3><button class="btn" onclick="closeModal('transfer-modal')" style="font-size:20px">&times;</button></div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group"><label>From Location</label><select id="tr-from">${locations.map(l=>`<option value="${l.id}">${l.name}</option>`).join('')}</select></div>
+        <div class="form-group"><label>To Location</label><select id="tr-to">${locations.map(l=>`<option value="${l.id}">${l.name}</option>`).join('')}</select></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Product</label><select id="tr-product">${products.map(p=>`<option value="${p.id}">${p.sku} — ${p.name}</option>`).join('')}</select></div>
+        <div class="form-group"><label>Quantity</label><input id="tr-qty" type="number" min="1" step="1" value="1"></div>
+      </div>
+      <div class="form-group"><label>Notes</label><textarea id="tr-notes" placeholder="Optional"></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('transfer-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="createTransfer()">Create Transfer</button>
+    </div>
+  </div>`;
+  document.body.appendChild(modal);
+}
+
+async function createTransfer(){
+  const fromLocationId = $('tr-from').value;
+  const toLocationId = $('tr-to').value;
+  const quantity = Number($('tr-qty').value);
+
+  if(!fromLocationId || !toLocationId){ toast('Locations are required', 'error'); return; }
+  if(fromLocationId === toLocationId){ toast('From/To locations must be different', 'error'); return; }
+  if(!Number.isInteger(quantity) || quantity <= 0){ toast('Quantity must be a positive integer', 'error'); return; }
+
+  const body = {
+    fromLocationId,
+    toLocationId,
+    items: [{ productId: $('tr-product').value, quantity }],
+    notes: $('tr-notes').value.trim() || undefined,
+  };
+
+  const res = await api('/transfers', {
+    method:'POST',
+    headers: { 'Idempotency-Key': crypto.randomUUID() },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json().catch(()=>({}));
+  if(!res.ok){ toast(data.message || 'Failed to create transfer', 'error'); return; }
+  toast('Transfer created');
+  closeModal('transfer-modal');
+  renderPage('transfers');
+}
+
+async function renderPurchaseOrders(el){
+  el.innerHTML = `<div class="content">
+    <div class="topbar"><h1>Purchase Orders</h1></div>
+    <div class="card"><table><thead><tr><th>ID</th><th>Supplier</th><th>Status</th><th>Expected Delivery</th></tr></thead><tbody id="po-tbody"><tr><td colspan="4" style="text-align:center;color:var(--muted)">Loading...</td></tr></tbody></table></div>
+  </div>`;
+  const res = await api('/purchase-orders?limit=50');
+  const data = await res.json();
+  const items = data.items||[];
+  $('po-tbody').innerHTML = items.length?items.map(p=>`<tr><td>${p.id.slice(0,8)}</td><td>${p.supplier?.name||p.supplierId}</td><td><span class="badge badge-blue">${p.status}</span></td><td>${p.expectedDeliveryDate?new Date(p.expectedDeliveryDate).toLocaleDateString():'—'}</td></tr>`).join(''):'<tr><td colspan="4" class="empty">No purchase orders</td></tr>';
+}
+
+async function renderSuppliers(el){
+  const canCreate = user.role==='TENANT_ADMIN' || user.role==='SUPER_ADMIN';
+  el.innerHTML = `<div class="content"><div class="topbar"><h1>Suppliers</h1><div class="topbar-actions">${canCreate?'<button class="btn btn-primary" onclick="openSupplierModal()">+ New Supplier</button>':''}</div></div><div class="card"><table><thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Address</th></tr></thead><tbody id="sup-tbody"><tr><td colspan="4" style="text-align:center;color:var(--muted)">Loading...</td></tr></tbody></table></div></div>`;
+  const res = await api('/suppliers?limit=50');
+  const data = await res.json();
+  const items = Array.isArray(data) ? data : (data.data || data.items || []);
+  $('sup-tbody').innerHTML = items.length?items.map(s=>`<tr><td><strong>${s.name}</strong></td><td>${s.email||'—'}</td><td>${s.phone||'—'}</td><td>${s.address||'—'}</td></tr>`).join(''):'<tr><td colspan="4" class="empty">No suppliers found</td></tr>';
+}
+
+function openSupplierModal(){
+  const modal = document.createElement('div');
+  modal.className='modal-overlay'; modal.id='supplier-modal';
+  modal.innerHTML = `<div class="modal">
+    <div class="modal-header"><h3>New Supplier</h3><button class="btn" onclick="closeModal('supplier-modal')" style="font-size:20px">&times;</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label>Name</label><input id="s-name" placeholder="Supplier name"></div>
+      <div class="form-row">
+        <div class="form-group"><label>Email</label><input id="s-email" type="email" placeholder="contact@supplier.com"></div>
+        <div class="form-group"><label>Phone</label><input id="s-phone" placeholder="+1 555 123 456"></div>
+      </div>
+      <div class="form-group"><label>Address</label><input id="s-address" placeholder="Street, city"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('supplier-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="createSupplier()">Create Supplier</button>
+    </div>
+  </div>`;
+  document.body.appendChild(modal);
+}
+
+async function createSupplier(){
+  const body = {
+    name: $('s-name').value.trim(),
+    email: $('s-email').value.trim() || undefined,
+    phone: $('s-phone').value.trim() || undefined,
+    address: $('s-address').value.trim() || undefined,
+  };
+  if(!body.name){ toast('Supplier name is required', 'error'); return; }
+
+  const res = await api('/suppliers', { method:'POST', body: JSON.stringify(body) });
+  const data = await res.json().catch(()=>({}));
+  if(!res.ok){ toast(data.message || 'Failed to create supplier', 'error'); return; }
+  toast('Supplier created');
+  closeModal('supplier-modal');
+  renderPage('suppliers');
+}
+
+async function renderLocations(el){
+  const canCreate = user.role==='TENANT_ADMIN' || user.role==='SUPER_ADMIN';
+  el.innerHTML = `<div class="content"><div class="topbar"><h1>Locations</h1><div class="topbar-actions">${canCreate?'<button class="btn btn-primary" onclick="openLocationModal()">+ New Location</button>':''}</div></div><div class="card"><table><thead><tr><th>Name</th><th>Type</th><th>Address</th></tr></thead><tbody id="loc-tbody"><tr><td colspan="3" style="text-align:center;color:var(--muted)">Loading...</td></tr></tbody></table></div></div>`;
+  const res = await api('/locations?limit=50');
+  const data = await res.json();
+  const items = Array.isArray(data) ? data : (data.data || data.items || []);
+  $('loc-tbody').innerHTML = items.length?items.map(l=>`<tr><td><strong>${l.name}</strong></td><td><span class="badge badge-gray">${l.type}</span></td><td>${l.address||'—'}</td></tr>`).join(''):'<tr><td colspan="3" class="empty">No locations found</td></tr>';
+}
+
+function openLocationModal(){
+  const modal = document.createElement('div');
+  modal.className='modal-overlay'; modal.id='location-modal';
+  modal.innerHTML = `<div class="modal">
+    <div class="modal-header"><h3>New Location</h3><button class="btn" onclick="closeModal('location-modal')" style="font-size:20px">&times;</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label>Name</label><input id="l-name" placeholder="Main Warehouse"></div>
+      <div class="form-group"><label>Type</label><select id="l-type">
+        <option value="WAREHOUSE">Warehouse</option>
+        <option value="STORE">Store</option>
+        <option value="DISTRIBUTION_CENTER">Distribution Center</option>
+      </select></div>
+      <div class="form-group"><label>Address</label><input id="l-address" placeholder="123 Main St"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('location-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="createLocation()">Create Location</button>
+    </div>
+  </div>`;
+  document.body.appendChild(modal);
+}
+
+async function createLocation(){
+  const body = {
+    name: $('l-name').value.trim(),
+    type: $('l-type').value,
+    address: $('l-address').value.trim() || undefined,
+  };
+  const res = await api('/locations',{method:'POST', body: JSON.stringify(body)});
+  const data = await res.json().catch(()=>({}));
+  if(!res.ok){ toast(data.message || 'Failed to create location', 'error'); return; }
+  toast('Location created');
+  closeModal('location-modal');
+  renderPage('locations');
+}
+
+// ============ USERS / TEAM ============
+async function renderUsers(el){
+  el.innerHTML = `<div class="content">
+    <div class="topbar"><h1>Team</h1><div class="topbar-actions"><button class="btn btn-primary" onclick="openUserModal()">+ Invite Member</button></div></div>
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-header"><div class="card-title">Invitation Token Confirmation</div></div>
+      <div class="form-row">
+        <div class="form-group" style="margin-bottom:0"><label>Token</label><input id="team-invite-token" placeholder="Paste token from invitation email"></div>
+        <div class="form-group" style="margin-bottom:0;display:flex;align-items:flex-end"><button class="btn btn-outline" onclick="openInviteAcceptancePage()">Open Acceptance Page</button></div>
+      </div>
+      <p style="margin-top:10px;color:var(--muted);font-size:13px">Use this when onboarding an invited teammate manually. The user must set password on the invitation page.</p>
+    </div>
+    <div class="card"><table><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Joined</th></tr></thead><tbody id="user-tbody"><tr><td colspan="5" style="text-align:center;color:var(--muted)">Loading...</td></tr></tbody></table></div>
+  </div>`;
+  loadUsers();
+}
+
+async function loadUsers(){
+  const res = await api('/users');
+  const data = await res.json();
+  const items = data.data||[];
+  $('user-tbody').innerHTML = items.length?items.map(u=>{
+    const status = u.isActive?'<span class="badge badge-green">Active</span>':'<span class="badge badge-red">Inactive</span>';
+    return `<tr><td><strong>${u.firstName||''} ${u.lastName||''}</strong></td><td>${u.email}</td><td><span class="badge badge-blue">${u.role?.replace(/_/g,' ')}</span></td><td>${status}</td><td>${new Date(u.createdAt).toLocaleDateString()}</td></tr>`;
+  }).join(''):'<tr><td colspan="5" class="empty">No team members found</td></tr>';
+}
+
+function openUserModal(){
+  const modal = document.createElement('div');
+  modal.className='modal-overlay'; modal.id='user-modal';
+  modal.innerHTML = `<div class="modal">
+    <div class="modal-header"><h3>Invite Team Member</h3><button class="btn" onclick="closeModal('user-modal')" style="font-size:20px">&times;</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label>Email</label><input id="u-email" type="email" placeholder="colleague@company.com"></div>
+      <div class="form-group"><label>Role</label><select id="u-role">
+        <option value="STORE_ASSOCIATE">Store Associate</option>
+        <option value="STORE_MANAGER">Store Manager</option>
+        <option value="REGIONAL_MANAGER">Regional Manager</option>
+        <option value="TENANT_ADMIN">Tenant Admin</option>
+      </select></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('user-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="createUser()">Send Invitation</button>
+    </div>
+  </div>`;
+  document.body.appendChild(modal);
+}
+
+async function createUser(){
+  const body = {email:$('u-email').value.trim(),role:$('u-role').value};
+  const res = await api('/users',{method:'POST',body:JSON.stringify(body)});
+  if(res.ok){ toast('Invitation sent!'); closeModal('user-modal'); loadUsers(); }
   else{ const d=await res.json(); toast(d.message||'Failed','error'); }
 }
 
-async function renderInventory(){
-  $('main').innerHTML = '<div class="card"><h3>Inventory</h3><div id="inv-list">Loading...</div></div>';
-  const res = await api('/inventory?limit=50');
-  const data = await res.json();
-  if(!res.ok){ toast(data.message||'Failed','error'); return; }
-  const items = Array.isArray(data)?data:(data.items||[]);
-  let html = '<table><tr><th>Product</th><th>Location</th><th>Qty</th><th>Reserved</th><th>Available</th><th>Status</th></tr>';
-  items.forEach(i=>{
-    const avail = i.quantity - (i.reservedQuantity||0);
-    const status = i.isLowStock?'<span class="badge badge-red">LOW</span>':'<span class="badge badge-green">OK</span>';
-    html += `<tr><td>${i.product?.name||i.productId}</td><td>${i.location?.name||i.locationId}</td><td>${i.quantity}</td><td>${i.reservedQuantity||0}</td><td>${avail}</td><td>${status}</td></tr>`;
-  });
-  html += '</table>';
-  $('main').innerHTML = html;
+function openInviteAcceptancePage(){
+  const value = $('team-invite-token')?.value?.trim();
+  if(!value){ toast('Token is required','error'); return; }
+  const url = `/accept-invitation?token=${encodeURIComponent(value)}`;
+  window.open(url, '_blank', 'noopener');
 }
 
-async function renderTransfers(){
-  $('main').innerHTML = '<div class="card"><h3>Transfers</h3><div id="tx-list">Loading...</div></div>';
-  const res = await api('/transfers?limit=50');
-  const data = await res.json();
-  if(!res.ok){ toast(data.message||'Failed','error'); return; }
-  const items = Array.isArray(data)?data:(data.items||[]);
-  let html = '<table><tr><th>ID</th><th>From → To</th><th>Status</th><th>Value</th><th>Actions</th></tr>';
-  items.forEach(t=>{
-    let actions='';
-    if(t.status==='PENDING_APPROVAL' && user.role!=='STORE_ASSOCIATE') actions += `<button class="btn btn-sm btn-success" onclick="approveTx('${t.id}',true)">Approve</button> <button class="btn btn-sm btn-danger" onclick="approveTx('${t.id}',false)">Reject</button>`;
-    if(t.status==='APPROVED') actions += `<button class="btn btn-sm btn-primary" onclick="shipTx('${t.id}')">Ship</button>`;
-    if(t.status==='IN_TRANSIT') actions += `<button class="btn btn-sm btn-primary" onclick="receiveTx('${t.id}')">Receive</button>`;
-    html += `<tr><td>${t.id.slice(0,8)}</td><td>${t.fromLocation?.name||t.fromLocationId} → ${t.toLocation?.name||t.toLocationId}</td><td><span class="badge ${t.status==='COMPLETED'?'badge-green':t.status==='CANCELLED'?'badge-red':'badge-yellow'}">${t.status}</span></td><td>$${t.totalValue}</td><td>${actions}</td></tr>`;
-  });
-  html += '</table>';
-  if(user.role!=='STORE_ASSOCIATE'){
-    html += `<div class="card" style="margin-top:20px">
-      <h4>Create Transfer</h4>
-      <label>From Location ID</label><input id="tx-from">
-      <label>To Location ID</label><input id="tx-to">
-      <label>Product ID</label><input id="tx-prod">
-      <label>Quantity</label><input id="tx-qty" type="number">
-      <button class="btn btn-success" onclick="createTransfer()">Create</button>
-    </div>`;
-  }
-  $('main').innerHTML = html;
-}
-async function createTransfer(){
-  const body={fromLocationId:$('tx-from').value,toLocationId:$('tx-to').value,items:[{productId:$('tx-prod').value,quantity:parseInt($('tx-qty').value)}],notes:'Created from frontend'};
-  const res=await api('/transfers',{method:'POST',body:JSON.stringify(body),headers:{'Idempotency-Key':crypto.randomUUID()}});
-  if(res.ok){ toast('Transfer created'); renderTransfers(); }
-  else{ const d=await res.json(); toast(d.message||d.code||'Failed','error'); }
-}
-async function approveTx(id,ok){ const res=await api('/transfers/'+id+'/approve',{method:'POST',body:JSON.stringify({approved:ok,reason:ok?'':'Rejected via UI'})}); if(res.ok){ toast('Updated'); renderTransfers(); } else{ toast('Failed','error'); } }
-async function shipTx(id){ const carrier=prompt('Carrier?','DHL'); if(!carrier)return; const res=await api('/transfers/'+id+'/ship',{method:'POST',body:JSON.stringify({carrier,trackingNumber:'TRACK-'+Date.now()})}); if(res.ok){ toast('Shipped'); renderTransfers(); } else{ toast('Failed','error'); } }
-async function receiveTx(id){ const qty=prompt('Quantity received?','10'); if(!qty)return; const res=await api('/transfers/'+id+'/receive',{method:'POST',body:JSON.stringify({items:[{productId:'prod-placeholder',quantityReceived:parseInt(qty)}]})}); if(res.ok){ toast('Received'); renderTransfers(); } else{ toast('Failed','error'); } }
+function closeModal(id){ const m=$(id); if(m) m.remove(); }
 
-async function renderPurchaseOrders(){
-  $('main').innerHTML = '<div class="card"><h3>Purchase Orders</h3><div id="po-list">Loading...</div></div>';
-  const res = await api('/purchase-orders?limit=50');
-  const data = await res.json();
-  if(!res.ok){ toast(data.message||'Failed','error'); return; }
-  const items = Array.isArray(data)?data:(data.items||[]);
-  let html = '<table><tr><th>ID</th><th>Supplier</th><th>Status</th><th>Expected</th></tr>';
-  items.forEach(p=>{ html += `<tr><td>${p.id.slice(0,8)}</td><td>${p.supplier?.name||p.supplierId}</td><td><span class="badge badge-blue">${p.status}</span></td><td>${p.expectedDeliveryDate?new Date(p.expectedDeliveryDate).toLocaleDateString():'-'}</td></tr>`; });
-  html += '</table>';
-  $('main').innerHTML = html;
-}
-
-async function renderAnalytics(){
-  $('main').innerHTML = `<div class="card"><h3>Analytics</h3>
-    <label>Product ID for Forecast</label><input id="fc-prod" placeholder="product-id">
-    <button class="btn btn-primary" onclick="loadForecast()">Get Forecast</button>
-    <div id="fc-result" style="margin-top:12px"></div>
+// ============ ANALYTICS ============
+async function renderAnalytics(el){
+  el.innerHTML = `<div class="content">
+    <div class="topbar"><h1>Analytics</h1></div>
+    <div class="grid-2">
+      <div class="card"><div class="card-header"><div class="card-title">Forecast</div></div>
+        <div class="form-group"><label>Product ID</label><input id="fc-prod" placeholder="product-id"></div>
+        <button class="btn btn-primary" onclick="loadForecast()">Get Forecast</button>
+        <pre id="fc-result" style="margin-top:16px;background:#0f172a;color:#e2e8f0;padding:16px;border-radius:8px;overflow:auto;font-size:13px;display:none"></pre>
+      </div>
+      <div class="card"><div class="card-header"><div class="card-title">Cross-Tenant Overview</div></div>
+        <p style="color:var(--muted)">Analytics data will appear here.</p>
+      </div>
+    </div>
   </div>`;
 }
 async function loadForecast(){
-  const id=$('fc-prod').value; if(!id)return;
+  const id=$('fc-prod').value; if(!id) return;
   const res=await api('/analytics/forecast/'+id+'?days=30');
   const d=await res.json();
   if(!res.ok){ toast(d.message||'Failed','error'); return; }
-  $('fc-result').innerHTML = `<pre>${JSON.stringify(d,null,2)}</pre>`;
+  $('fc-result').style.display='block'; $('fc-result').textContent=JSON.stringify(d,null,2);
 }
 
-if(token && user){ renderDashboard(); } else { renderAuth(); }
+// Init
+if(token && user){ renderApp(); } else { renderAuth(); }
 </script>
 </body>
 </html>

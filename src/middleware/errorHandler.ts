@@ -22,6 +22,8 @@ export const errorHandler = (
   _next: NextFunction,
 ): void => {
   const timestamp = new Date().toISOString();
+  const rawError = error as Error & { status?: number; statusCode?: number; expose?: boolean };
+  const suggestedStatus = rawError.statusCode || rawError.status;
 
   if (error instanceof AppError) {
     logger.warn(`AppError: ${error.code} - ${error.message}`);
@@ -37,6 +39,34 @@ export const errorHandler = (
     }
 
     res.status(error.statusCode).json(response);
+    return;
+  }
+
+  // CORS middleware can surface disallowed origins as generic errors.
+  if (error.message === 'Not allowed by CORS') {
+    logger.warn({
+      method: req.method,
+      path: req.path,
+      origin: req.headers.origin,
+      ip: req.ip,
+    }, 'Blocked by CORS policy');
+
+    res.status(403).json({
+      code: 'CORS_ORIGIN_NOT_ALLOWED',
+      message: 'Request origin is not allowed by CORS policy',
+      timestamp,
+    });
+    return;
+  }
+
+  // Respect status hints from body-parser and other middleware (e.g. invalid JSON => 400)
+  if (typeof suggestedStatus === 'number' && suggestedStatus >= 400 && suggestedStatus < 500) {
+    logger.warn({ err: error }, 'Client request error');
+    res.status(suggestedStatus).json({
+      code: suggestedStatus === 400 ? 'BAD_REQUEST' : 'REQUEST_ERROR',
+      message: rawError.expose ? error.message : 'Request could not be processed',
+      timestamp,
+    });
     return;
   }
 

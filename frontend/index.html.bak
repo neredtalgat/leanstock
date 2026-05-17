@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LeanStock Demo</title>
+<style>
+:root{--primary:#2563eb;--danger:#dc2626;--success:#16a34a;--bg:#f8fafc;--card:#fff;--text:#1e293b;}
+*{box-sizing:border-box;font-family:system-ui,-apple-system,sans-serif}
+body{margin:0;background:var(--bg);color:var(--text)}
+.container{max-width:1200px;margin:0 auto;padding:20px}
+.card{background:var(--card);border-radius:12px;padding:20px;margin-bottom:20px;box-shadow:0 1px 3px rgba(0,0,0,.1)}
+.btn{border:none;padding:10px 18px;border-radius:8px;cursor:pointer;font-weight:600;font-size:14px}
+.btn-primary{background:var(--primary);color:#fff}
+.btn-danger{background:var(--danger);color:#fff}
+.btn-success{background:var(--success);color:#fff}
+.btn-sm{padding:6px 12px;font-size:12px}
+input,select,textarea{width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:8px;margin-bottom:12px;font-size:14px}
+label{font-weight:600;font-size:13px;color:#64748b;display:block;margin-bottom:4px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
+.badge{font-size:11px;padding:4px 8px;border-radius:20px;font-weight:700;text-transform:uppercase}
+.badge-green{background:#dcfce7;color:#166534}
+.badge-red{background:#fee2e2;color:#991b1b}
+.badge-yellow{background:#fef9c3;color:#854d0e}
+.badge-blue{background:#dbeafe;color:#1e40af}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{text-align:left;padding:10px;border-bottom:1px solid #e2e8f0}
+th{color:#64748b;font-weight:600}
+.nav{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:20px}
+.nav a{color:var(--primary);text-decoration:none;font-weight:600}
+.hidden{display:none !important}
+.toast{position:fixed;top:20px;right:20px;padding:14px 20px;border-radius:10px;color:#fff;font-weight:600;z-index:9999;animation:slideIn .3s ease}
+@keyframes slideIn{from{transform:translateX(100%)}to{transform:translateX(0)}}
+pre{background:#0f172a;color:#e2e8f0;padding:12px;border-radius:8px;overflow:auto;font-size:12px}
+</style>
+</head>
+<body>
+<div class="container">
+  <div id="app"></div>
+</div>
+<script>
+// API через nginx reverse proxy (проксирует /api/ на бэкенд)
+const API_BASE = '/api';
+const API = API_BASE;
+
+let token = localStorage.getItem('accessToken') || '';
+let refresh = localStorage.getItem('refreshToken') || '';
+let user = JSON.parse(localStorage.getItem('user') || 'null');
+
+// Check for verify-email redirect messages
+const urlParams = new URLSearchParams(window.location.search);
+const verifyStatus = urlParams.get('verify');
+const verifyMsg = urlParams.get('message');
+if (verifyStatus === 'success') {
+  setTimeout(() => toast(verifyMsg || 'Email verified! You can now log in.', 'success'), 300);
+  window.history.replaceState({}, document.title, window.location.pathname);
+} else if (verifyStatus === 'error') {
+  setTimeout(() => toast(verifyMsg || 'Verification failed.', 'error'), 300);
+  window.history.replaceState({}, document.title, window.location.pathname);
+}
+
+function $(id){return document.getElementById(id)}
+function show(id){$(id).classList.remove('hidden')}
+function hide(id){$(id).classList.add('hidden')}
+function toast(msg, type='success'){
+  const d=document.createElement('div');
+  d.className='toast'; d.style.background = type==='success'?'#16a34a':type==='error'?'#dc2626':'#2563eb';
+  d.textContent=msg; document.body.appendChild(d);
+  setTimeout(()=>d.remove(),4000);
+}
+
+async function api(path, opts={}){
+  const url = API + path;
+  const headers = {'Content-Type':'application/json', ...(opts.headers||{})};
+  if(token) headers['Authorization'] = 'Bearer ' + token;
+  const res = await fetch(url, {...opts, headers});
+  if(res.status===401 && refresh){ await doRefresh(); headers['Authorization']='Bearer '+token; const r2=await fetch(url,{...opts,headers}); return r2; }
+  return res;
+}
+
+async function doRefresh(){
+  const r = await fetch(API+'/auth/refresh',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({refreshToken:refresh})});
+  if(r.ok){ const d=await r.json(); token=d.accessToken; localStorage.setItem('accessToken',token); }
+  else{ logout(); }
+}
+
+function logout(){ localStorage.clear(); token=''; user=null; renderAuth(); toast('Logged out','info'); }
+
+function renderAuth(){
+  $('app').innerHTML = `
+    <div class="card" style="max-width:420px;margin:60px auto">
+      <h2>LeanStock</h2>
+      <div id="auth-forms">
+        <div id="login-form">
+          <h3>Login</h3>
+          <label>Email</label><input id="li-email" type="email" placeholder="user@example.com">
+          <label>Password</label><input id="li-pass" type="password" placeholder="••••••">
+          <button type="button" class="btn btn-primary" onclick="console.log('Button clicked'); login()">Login</button>
+          <p><a href="#" onclick="showRegister()">Need an account? Register</a> · <a href="#" onclick="showForgot()">Forgot password?</a></p>
+        </div>
+        <div id="register-form" class="hidden">
+          <h3>Register</h3>
+          <label>Email</label><input id="re-email" type="email">
+          <label>Password</label><input id="re-pass" type="password">
+          <label>First Name</label><input id="re-fname">
+          <label>Last Name</label><input id="re-lname">
+          <button class="btn btn-success" onclick="register()">Register</button>
+          <p><a href="#" onclick="showLogin()">Back to login</a></p>
+        </div>
+        <div id="forgot-form" class="hidden">
+          <h3>Reset Password</h3>
+          <label>Email</label><input id="fp-email" type="email">
+          <button class="btn btn-primary" onclick="forgotPassword()">Send Reset Link</button>
+          <p><a href="#" onclick="showLogin()">Back to login</a></p>
+        </div>
+        <div id="verify-hint" class="hidden">
+          <p style="color:var(--success);font-weight:600">✅ Registration successful! Check your email to verify your account before logging in.</p>
+        </div>
+      </div>
+    </div>`;
+}
+function showRegister(){ $('login-form').classList.add('hidden'); $('register-form').classList.remove('hidden'); $('forgot-form').classList.add('hidden'); }
+function showLogin(){ $('login-form').classList.remove('hidden'); $('register-form').classList.add('hidden'); $('forgot-form').classList.add('hidden'); }
+function showForgot(){ $('login-form').classList.add('hidden'); $('register-form').classList.add('hidden'); $('forgot-form').classList.remove('hidden'); }
+
+async function login(){
+  console.log('Login button clicked');
+  const res = await api('/auth/login',{method:'POST',body:JSON.stringify({email:$('li-email').value,password:$('li-pass').value})});
+  console.log('Login response:', res.status);
+  const data = await res.json();
+  console.log('Login data:', data);
+  if(!res.ok){
+    let msg = data.message || 'Login failed';
+    if(data.code === 'EMAIL_NOT_VERIFIED' && data.emailSent){
+      msg = 'Please verify your email first. A new verification link has been sent to your inbox (check Spam too).';
+      toast(msg,'error'); return;
+    }
+    if(data.code === 'VALIDATION_ERROR' && data.details){
+      msg = 'Validation error: ' + (data.details.errors?.map(e => e.path + ' - ' + e.message).join(', ') || JSON.stringify(data.details));
+    } else if(data.code){
+      msg = data.code + ': ' + msg;
+    }
+    toast(msg,'error'); return;
+  }
+  token=data.accessToken; refresh=data.refreshToken; user=data.user || { email: $('li-email').value };
+  localStorage.setItem('accessToken',token); localStorage.setItem('refreshToken',refresh); localStorage.setItem('user',JSON.stringify(user));
+  toast('Welcome, '+user.firstName); renderDashboard();
+}
+async function register(){
+  const res = await api('/auth/register',{method:'POST',body:JSON.stringify({email:$('re-email').value,password:$('re-pass').value,firstName:$('re-fname').value,lastName:$('re-lname').value})});
+  if(res.ok){ showRegister(); $('verify-hint').classList.remove('hidden'); toast('Check your email!','success'); }
+  else{ const d=await res.json(); toast(d.message||'Registration failed','error'); }
+}
+async function forgotPassword(){
+  const res = await api('/auth/forgot-password',{method:'POST',body:JSON.stringify({email:$('fp-email').value})});
+  if(res.ok){ toast('Reset link sent to email','success'); showLogin(); }
+  else{ toast('Failed to send reset','error'); }
+}
+
+function renderDashboard(){
+  if(!user){ renderAuth(); return; }
+  $('app').innerHTML = `
+    <div class="nav">
+      <strong>LeanStock</strong>
+      <a href="#" onclick="renderProducts()">Products</a>
+      <a href="#" onclick="renderTransfers()">Transfers</a>
+      <a href="#" onclick="renderInventory()">Inventory</a>
+      <a href="#" onclick="renderPurchaseOrders()">Purchase Orders</a>
+      <a href="#" onclick="renderAnalytics()">Analytics</a>
+      <span style="margin-left:auto">${user.firstName||user.email} (${user.role})</span>
+      <button class="btn btn-sm btn-danger" onclick="logout()">Logout</button>
+    </div>
+    <div id="main"></div>`;
+  renderProducts();
+}
+
+async function renderProducts(){
+  $('main').innerHTML = '<div class="card"><h3>Products</h3><div id="product-list">Loading...</div></div>';
+  const res = await api('/products?limit=50');
+  const data = await res.json();
+  if(!res.ok){ toast(data.message||'Failed to load','error'); return; }
+  const items = Array.isArray(data)?data:(data.items||data.products||[]);
+  let html = '<div class="grid">';
+  items.forEach(p=>{
+    html += `<div class="card">
+      <div style="display:flex;justify-content:space-between"><strong>${p.name||p.sku}</strong><span class="badge badge-blue">${p.sku}</span></div>
+      <div style="color:#64748b;font-size:13px;margin:8px 0">${p.description||'No description'}</div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <span class="badge badge-green">$${p.retailPrice}</span>
+        <span class="badge badge-yellow">Cost: $${p.baseCost}</span>
+      </div>
+    </div>`;
+  });
+  html += '</div>';
+  if(user.role!=='STORE_ASSOCIATE'){
+    html += `<div class="card" style="margin-top:20px">
+      <h4>Create Product</h4>
+      <label>SKU</label><input id="p-sku">
+      <label>Name</label><input id="p-name">
+      <label>Description</label><input id="p-desc">
+      <label>Base Cost</label><input id="p-cost" type="number" step="0.01">
+      <label>Retail Price</label><input id="p-price" type="number" step="0.01">
+      <button class="btn btn-success" onclick="createProduct()">Create</button>
+    </div>`;
+  }
+  $('main').innerHTML = html;
+}
+async function createProduct(){
+  const body={sku:$('p-sku').value,name:$('p-name').value,description:$('p-desc').value,baseCost:parseFloat($('p-cost').value),retailPrice:parseFloat($('p-price').value)};
+  const res=await api('/products',{method:'POST',body:JSON.stringify(body)});
+  if(res.ok){ toast('Product created'); renderProducts(); }
+  else{ const d=await res.json(); toast(d.message||'Failed','error'); }
+}
+
+async function renderInventory(){
+  $('main').innerHTML = '<div class="card"><h3>Inventory</h3><div id="inv-list">Loading...</div></div>';
+  const res = await api('/inventory?limit=50');
+  const data = await res.json();
+  if(!res.ok){ toast(data.message||'Failed','error'); return; }
+  const items = Array.isArray(data)?data:(data.items||[]);
+  let html = '<table><tr><th>Product</th><th>Location</th><th>Qty</th><th>Reserved</th><th>Available</th><th>Status</th></tr>';
+  items.forEach(i=>{
+    const avail = i.quantity - (i.reservedQuantity||0);
+    const status = i.isLowStock?'<span class="badge badge-red">LOW</span>':'<span class="badge badge-green">OK</span>';
+    html += `<tr><td>${i.product?.name||i.productId}</td><td>${i.location?.name||i.locationId}</td><td>${i.quantity}</td><td>${i.reservedQuantity||0}</td><td>${avail}</td><td>${status}</td></tr>`;
+  });
+  html += '</table>';
+  $('main').innerHTML = html;
+}
+
+async function renderTransfers(){
+  $('main').innerHTML = '<div class="card"><h3>Transfers</h3><div id="tx-list">Loading...</div></div>';
+  const res = await api('/transfers?limit=50');
+  const data = await res.json();
+  if(!res.ok){ toast(data.message||'Failed','error'); return; }
+  const items = Array.isArray(data)?data:(data.items||[]);
+  let html = '<table><tr><th>ID</th><th>From → To</th><th>Status</th><th>Value</th><th>Actions</th></tr>';
+  items.forEach(t=>{
+    let actions='';
+    if(t.status==='PENDING_APPROVAL' && user.role!=='STORE_ASSOCIATE') actions += `<button class="btn btn-sm btn-success" onclick="approveTx('${t.id}',true)">Approve</button> <button class="btn btn-sm btn-danger" onclick="approveTx('${t.id}',false)">Reject</button>`;
+    if(t.status==='APPROVED') actions += `<button class="btn btn-sm btn-primary" onclick="shipTx('${t.id}')">Ship</button>`;
+    if(t.status==='IN_TRANSIT') actions += `<button class="btn btn-sm btn-primary" onclick="receiveTx('${t.id}')">Receive</button>`;
+    html += `<tr><td>${t.id.slice(0,8)}</td><td>${t.fromLocation?.name||t.fromLocationId} → ${t.toLocation?.name||t.toLocationId}</td><td><span class="badge ${t.status==='COMPLETED'?'badge-green':t.status==='CANCELLED'?'badge-red':'badge-yellow'}">${t.status}</span></td><td>$${t.totalValue}</td><td>${actions}</td></tr>`;
+  });
+  html += '</table>';
+  if(user.role!=='STORE_ASSOCIATE'){
+    html += `<div class="card" style="margin-top:20px">
+      <h4>Create Transfer</h4>
+      <label>From Location ID</label><input id="tx-from">
+      <label>To Location ID</label><input id="tx-to">
+      <label>Product ID</label><input id="tx-prod">
+      <label>Quantity</label><input id="tx-qty" type="number">
+      <button class="btn btn-success" onclick="createTransfer()">Create</button>
+    </div>`;
+  }
+  $('main').innerHTML = html;
+}
+async function createTransfer(){
+  const body={fromLocationId:$('tx-from').value,toLocationId:$('tx-to').value,items:[{productId:$('tx-prod').value,quantity:parseInt($('tx-qty').value)}],notes:'Created from frontend'};
+  const res=await api('/transfers',{method:'POST',body:JSON.stringify(body),headers:{'Idempotency-Key':crypto.randomUUID()}});
+  if(res.ok){ toast('Transfer created'); renderTransfers(); }
+  else{ const d=await res.json(); toast(d.message||d.code||'Failed','error'); }
+}
+async function approveTx(id,ok){ const res=await api('/transfers/'+id+'/approve',{method:'POST',body:JSON.stringify({approved:ok,reason:ok?'':'Rejected via UI'})}); if(res.ok){ toast('Updated'); renderTransfers(); } else{ toast('Failed','error'); } }
+async function shipTx(id){ const carrier=prompt('Carrier?','DHL'); if(!carrier)return; const res=await api('/transfers/'+id+'/ship',{method:'POST',body:JSON.stringify({carrier,trackingNumber:'TRACK-'+Date.now()})}); if(res.ok){ toast('Shipped'); renderTransfers(); } else{ toast('Failed','error'); } }
+async function receiveTx(id){ const qty=prompt('Quantity received?','10'); if(!qty)return; const res=await api('/transfers/'+id+'/receive',{method:'POST',body:JSON.stringify({items:[{productId:'prod-placeholder',quantityReceived:parseInt(qty)}]})}); if(res.ok){ toast('Received'); renderTransfers(); } else{ toast('Failed','error'); } }
+
+async function renderPurchaseOrders(){
+  $('main').innerHTML = '<div class="card"><h3>Purchase Orders</h3><div id="po-list">Loading...</div></div>';
+  const res = await api('/purchase-orders?limit=50');
+  const data = await res.json();
+  if(!res.ok){ toast(data.message||'Failed','error'); return; }
+  const items = Array.isArray(data)?data:(data.items||[]);
+  let html = '<table><tr><th>ID</th><th>Supplier</th><th>Status</th><th>Expected</th></tr>';
+  items.forEach(p=>{ html += `<tr><td>${p.id.slice(0,8)}</td><td>${p.supplier?.name||p.supplierId}</td><td><span class="badge badge-blue">${p.status}</span></td><td>${p.expectedDeliveryDate?new Date(p.expectedDeliveryDate).toLocaleDateString():'-'}</td></tr>`; });
+  html += '</table>';
+  $('main').innerHTML = html;
+}
+
+async function renderAnalytics(){
+  $('main').innerHTML = `<div class="card"><h3>Analytics</h3>
+    <label>Product ID for Forecast</label><input id="fc-prod" placeholder="product-id">
+    <button class="btn btn-primary" onclick="loadForecast()">Get Forecast</button>
+    <div id="fc-result" style="margin-top:12px"></div>
+  </div>`;
+}
+async function loadForecast(){
+  const id=$('fc-prod').value; if(!id)return;
+  const res=await api('/analytics/forecast/'+id+'?days=30');
+  const d=await res.json();
+  if(!res.ok){ toast(d.message||'Failed','error'); return; }
+  $('fc-result').innerHTML = `<pre>${JSON.stringify(d,null,2)}</pre>`;
+}
+
+if(token && user){ renderDashboard(); } else { renderAuth(); }
+</script>
+</body>
+</html>

@@ -21,7 +21,6 @@ export const createTenant = async (req: AuthenticatedRequest, res: Response): Pr
         },
         admin: result.admin ? {
           email: result.admin.email,
-          inviteToken: result.admin.inviteToken,
           inviteLink: result.admin.inviteLink,
         } : null,
       });

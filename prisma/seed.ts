@@ -1,3 +1,4 @@
+/// <reference types="node" />
 import { PrismaClient, UserRole } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 
@@ -190,7 +191,7 @@ async function main() {
   console.log(`✅ Created product: ${product2.sku}`);
 
   // Create inventory records
-  const inventory1 = await prisma.inventory.create({
+  await prisma.inventory.create({
     data: {
       tenantId: tenant.id,
       productId: product1.id,
@@ -201,7 +202,7 @@ async function main() {
   });
   console.log(`✅ Created inventory record for ${product1.sku}`);
 
-  const inventory2 = await prisma.inventory.create({
+  await prisma.inventory.create({
     data: {
       tenantId: tenant.id,
       productId: product2.id,

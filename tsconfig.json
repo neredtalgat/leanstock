@@ -13,6 +13,7 @@
     "sourceMap": true,
     "noImplicitAny": false,
     "moduleResolution": "node",
+    "types": ["node"],
     "noEmitOnError": false,
     "strictNullChecks": false,
     "strictFunctionTypes": false,

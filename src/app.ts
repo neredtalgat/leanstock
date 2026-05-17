@@ -22,6 +22,7 @@ import systemSettingsRoutes from './routes/system-settings.routes';
 import supplierReturnRoutes from './routes/supplier-return.routes';
 import notificationRoutes from './routes/notification.routes';
 import tenantRoutes from './routes/tenant.routes';
+import userRoutes from './routes/user.routes';
 import deadStockRoutes from './routes/dead-stock.routes';
 import { healthCheck, readinessCheck } from './controllers/health.controller';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
@@ -31,6 +32,18 @@ import { AuthenticatedRequest } from './types';
 
 export function createApp(): Application {
   const app = express();
+  const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:3001,http://localhost:3000')
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+  const isLocalhostOrigin = (origin: string): boolean => {
+    try {
+      const parsed = new URL(origin);
+      return parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1';
+    } catch {
+      return false;
+    }
+  };
 
   // Trust proxy
   app.set('trust proxy', 1);
@@ -51,7 +64,7 @@ export function createApp(): Application {
         styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
         scriptSrc: ["'self'"],
         imgSrc: ["'self'", "data:", "https:"],
-        connectSrc: ["'self'", process.env.CORS_ORIGIN || "http://localhost:3000"],
+        connectSrc: ["'self'", ...allowedOrigins],
         fontSrc: ["'self'", "https://fonts.gstatic.com"],
         objectSrc: ["'none'"],
         mediaSrc: ["'self'"],
@@ -73,19 +86,14 @@ export function createApp(): Application {
   // Enhanced CORS configuration
   app.use(cors({
     origin: (origin, callback) => {
-      const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:3000').split(',');
-      
       if (!origin) return callback(null, true);
-      
-      if (process.env.NODE_ENV === 'production') {
-        if (allowedOrigins.includes(origin)) {
-          callback(null, true);
-        } else {
-          callback(new Error('Not allowed by CORS'), false);
-        }
-      } else {
+
+      if (allowedOrigins.includes(origin) || isLocalhostOrigin(origin)) {
         callback(null, true);
+        return;
       }
+
+      callback(new Error('Not allowed by CORS'), false);
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
@@ -182,6 +190,7 @@ export function createApp(): Application {
   app.use('/notifications', notificationRoutes);
   app.use('/tenants', tenantRoutes);
   app.use('/system/dead-stock-rules', deadStockRoutes);
+  app.use('/users', userRoutes);
   app.use('/auth', authExtraRoutes);
 
   // 404 handler

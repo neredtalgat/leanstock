@@ -11,6 +11,8 @@ import { RegisterInput, LoginInput } from '../schemas/auth.schema';
 import { emailService } from './email.service';
 
 export class AuthService {
+  private readonly INVITE_TOKEN_TTL_SECONDS = 7 * 24 * 60 * 60;
+
   private canInviteRole(inviterRole: UserRole, targetRole: UserRole): boolean {
     if (targetRole === UserRole.SUPER_ADMIN) {
       return false;
@@ -26,6 +28,11 @@ export class AuthService {
     };
 
     return hierarchy[targetRole] <= hierarchy[inviterRole];
+  }
+
+  private buildInviteLink(token: string): string {
+    const baseUrl = env.FRONTEND_URL || 'http://localhost:3001';
+    return `${baseUrl}/accept-invitation?token=${encodeURIComponent(token)}`;
   }
   async register(data: RegisterInput, tenantId: string): Promise<any> {
     try {
@@ -93,16 +100,14 @@ export class AuthService {
 
   async login(data: LoginInput): Promise<TokenPair & { user: any }> {
     try {
-      let tenantId = data.tenantId;
+      const tenantId = data.tenantId;
       
       // Find user by email and tenant (or just email if tenantId not provided)
-      console.log('Login attempt:', { email: data.email, tenantId: data.tenantId });
       const user = await db.user.findFirst({
         where: tenantId
           ? { tenantId, email: data.email }
           : { email: data.email },
       });
-      console.log('User found:', user ? { id: user.id, email: user.email, isActive: user.isActive } : null);
 
       if (!user || !user.isActive) {
         throw new Error('INVALID_CREDENTIALS');
@@ -368,6 +373,9 @@ export class AuthService {
 
   async createInvitation(invitedBy: JWTPayload, email: string, role: UserRole): Promise<string> {
     const tenantId = invitedBy.tenantId;
+    if (!tenantId) {
+      throw new Error('TENANT_NOT_FOUND');
+    }
 
     if (!this.canInviteRole(invitedBy.role, role)) {
       throw new Error('INVITE_ROLE_FORBIDDEN');
@@ -390,15 +398,18 @@ export class AuthService {
       throw new Error('EMAIL_EXISTS');
     }
 
+    const invitationId = crypto.randomUUID();
     const payload = {
       email,
       role,
       tenantId,
       invitedBy: invitedBy.userId,
+      jti: invitationId,
       type: 'invite' as const,
     };
 
     const token = jwt.sign(payload, env.JWT_SECRET, { expiresIn: '7d' });
+    await redis.setex(`invite:jti:${invitationId}`, this.INVITE_TOKEN_TTL_SECONDS, '1');
 
     // Get inviter name for email
     const inviter = await tenantDb.user.findFirst({
@@ -410,7 +421,7 @@ export class AuthService {
       : inviter?.email || 'Admin';
 
     // Generate invite link
-    const inviteLink = `${env.FRONTEND_URL || 'http://localhost:3000'}/accept-invitation?token=${token}`;
+    const inviteLink = this.buildInviteLink(token);
 
     // Send invitation email (async, non-blocking)
     emailService.sendInvitationEmail({
@@ -441,7 +452,13 @@ export class AuthService {
       throw new Error('INVALID_INVITE_TOKEN');
     }
 
-    if (decoded.type !== 'invite') {
+    if (decoded.type !== 'invite' || typeof decoded.jti !== 'string' || decoded.jti.length === 0) {
+      throw new Error('INVALID_INVITE_TOKEN');
+    }
+
+    const inviteKey = `invite:jti:${decoded.jti}`;
+    const inviteExists = await redis.exists(inviteKey);
+    if (!inviteExists) {
       throw new Error('INVALID_INVITE_TOKEN');
     }
 
@@ -479,6 +496,7 @@ export class AuthService {
         });
       } else {
         // User already registered with password
+        await redis.del(inviteKey);
         throw new Error('EMAIL_EXISTS');
       }
     } else {
@@ -500,6 +518,7 @@ export class AuthService {
     }
 
     const tokens = this.generateTokenPair(user, tenantId);
+    await redis.del(inviteKey);
 
     logger.info({ userId: user.id, email, tenantId }, 'User registered via invite');
     return { user, tokens };

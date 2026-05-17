@@ -11,9 +11,34 @@ export const injectTenant = (req: AuthenticatedRequest, res: Response, next: Nex
   try {
     const store: Record<string, unknown> = {};
 
-    // Super admin bypass - they operate globally without tenant context
+    // Super admin can operate globally, but if X-Tenant-ID is provided, use it
     if (req.user?.role === UserRole.SUPER_ADMIN) {
       store.isSuperAdmin = true;
+      const headerTenant = req.headers['x-tenant-id'] as string;
+      if (!headerTenant) {
+        res.status(400).json({
+          code: 'MISSING_TENANT',
+          message: 'Missing tenant ID for super admin scoped operation',
+          details: {
+            hint: 'Provide X-Tenant-ID header for tenant-scoped endpoints',
+          },
+          timestamp: new Date().toISOString(),
+        });
+        return;
+      }
+
+      if (!UUID_REGEX.test(headerTenant)) {
+        res.status(400).json({
+          code: 'INVALID_TENANT',
+          message: 'Invalid tenant ID format',
+          timestamp: new Date().toISOString(),
+        });
+        return;
+      }
+
+      store.tenantId = headerTenant;
+      req.tenantId = headerTenant;
+
       asyncLocalStorage.run(store as { tenantId?: string; isSuperAdmin?: boolean }, () => {
         next();
       });

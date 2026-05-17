@@ -1,8 +1,8 @@
 import { db } from '../config/database';
 import { CreateTenantInput } from '../schemas/tenant.schema';
 import { UserRole } from '@prisma/client';
-import jwt from 'jsonwebtoken';
 import { logger } from '../config/logger';
+import { authService } from './auth.service';
 
 export class TenantService {
   async create(input: CreateTenantInput) {
@@ -23,37 +23,22 @@ export class TenantService {
       });
 
       let adminUser = null;
-      let inviteToken = null;
 
       // If admin email provided, create admin user
       if (input.adminEmail) {
         try {
-          // Create TENANT_ADMIN user
-          adminUser = await db.user.create({
-            data: {
-              email: input.adminEmail,
-              firstName: input.adminFirstName || '',
-              lastName: input.adminLastName || '',
-              role: UserRole.TENANT_ADMIN,
-              tenantId: tenant.id,
-              isActive: true,
-              emailVerified: true,
-              passwordHash: '', // Placeholder - will be set when user accepts invite
-            },
-          });
-
-          // Create invite token directly (replicating invitation flow)
-          inviteToken = jwt.sign(
+          await authService.createInvitation(
             {
-              email: input.adminEmail,
-              role: UserRole.TENANT_ADMIN,
+              userId: 'system',
               tenantId: tenant.id,
-              invitedBy: 'system',
-              type: 'invite',
+              email: 'system@leanstock.local',
+              role: UserRole.SUPER_ADMIN,
+              type: 'access',
             },
-            process.env.JWT_SECRET,
-            { expiresIn: '7d' }
+            input.adminEmail,
+            UserRole.TENANT_ADMIN,
           );
+          adminUser = { email: input.adminEmail };
 
           logger.info(
             `Created tenant ${tenant.id} with admin user ${input.adminEmail}`
@@ -73,8 +58,7 @@ export class TenantService {
         tenant,
         admin: adminUser ? {
           email: adminUser.email,
-          inviteToken,
-          inviteLink: inviteToken ? `${process.env.APP_URL || 'http://localhost:3000'}/auth/register-invite?token=${inviteToken}` : null,
+          inviteLink: null,
         } : null,
       };
     } catch (error) {

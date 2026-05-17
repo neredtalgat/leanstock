@@ -21,8 +21,12 @@ export const createLocation = async (req: AuthenticatedRequest, res: Response): 
 
     const location = await locationService.create(tenantId, { name, address, type });
     res.status(201).json(location);
-  } catch (error) {
+  } catch (error: any) {
     logger.error({ err: error }, 'Create location error');
+    if (error.code === 'P2002') {
+      res.status(409).json({ code: 'LOCATION_EXISTS', message: 'Location with this name already exists' });
+      return;
+    }
     res.status(500).json({ code: 'INTERNAL_ERROR', message: 'Internal server error' });
   }
 };
